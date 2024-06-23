@@ -73,7 +73,7 @@ jobs:
     name: Build and push Docker image
     needs: python-ci
     runs-on: ubuntu-latest
-    if: ${{ github.ref == 'refs/heads/main' }}
+    if: ${{ github.ref_name == 'main' }}
     steps:
       - uses: actions/download-artifact@v4
         with:
