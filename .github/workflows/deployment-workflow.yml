@@ -22,7 +22,7 @@ on:
      helm-release-name:
        description: 'Name of the helm release'
        type: string
-       default: 'todoapp'
+       default: todoapp
 jobs:
  deploy-helm:
    runs-on: ubuntu-latest
