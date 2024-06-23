@@ -15,7 +15,6 @@ on:
 
 env:
   PythonVersion: 3.8
-  DockerUsername: ikruglyak
   DockerImageName: todoapp
   EnvironmentName: Development
 
