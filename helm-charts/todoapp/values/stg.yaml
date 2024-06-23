@@ -1,33 +1,27 @@
 common:
-  enviroment: "Staging"
-  namespace: todoapp-staging
+ environment: "Staging"
+ namespace: todoapp-staging
+
 
 mysql:
-  namespace: mysql-staging
+ namespace: mysql-staging
 
-todoapp:
-  namespace: todoapp
-  image:
-    repository: ikulyk404/todoapp
 
-  resources:
-    requests:
+kube2py:
+ configs:
+   APP_ENV: "User-Testing"
+ secrets:
+   password: MyStrongPassword
+
+
+ resources:
+   requests:
       memory: "256Mi"
-      cpu: "150m"
-    limits:
-      memory: "256Mi"
-      cpu: "150m"
-
-  hpa:
-    minReplicas: 2
-    maxReplicas: 5
-    cpu:
-      avarageUtilization: 70
-    memory:
-      avarageUtilization: 70
-
-  volumes:
-    persistentVolume:
-      capacity: "1Gi"
-    persistentVolumeClaim:
-      requestStorage: "1Gi"
+      cpu: "100m"
+   limits:
+     memory: "256Mi"
+     cpu: "100m"
+ hpa:
+   enabled: true
+   minReplicas: 3
+   maxReplicas: 5
