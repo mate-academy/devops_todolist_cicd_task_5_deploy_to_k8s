@@ -90,7 +90,7 @@ jobs:
         with:
           context: ./src
           push: true
-          tags: ${{ env.DockerUsername }}/${{ env.DockerImageName }}:${{ github.sha }}
+          tags: ${{ env.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
 
   helm-ci:
     name: Helm CI
@@ -110,7 +110,7 @@ jobs:
         run: helm lint ./todoapp/
 
       - name: Template Helm
-        run: helm template todoapp ./todoapp -f ./todoapp/values.
+        run: helm template todoapp ./todoapp -f ./todoapp/values.yaml
 
       - name: Package Helm
         run: helm package ./todoapp --app-version ${{ github.sha }}
