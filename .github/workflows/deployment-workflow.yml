@@ -51,8 +51,7 @@ jobs:
 
     - name: DRY_RUN helm
       run:
-        helm install --dry-run ${{ inputs.helm-release-name}} ./*.tgz \
-          -f ${{ inputs.helm-values.path }} \
+        helm install --dry-run ${{ inputs.helm-release-name}} ./todoapp*.tgz -f ${{ inputs.helm-values.path }} \
           --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
           --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
           --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
@@ -65,8 +64,7 @@ jobs:
 
     - name: Deploy helm to Development
       run:
-        helm upgrade --install --atomic --wait --timeout 3600s --debug ${{ inputs.helm-release-name}} ./*.tgz \
-          -f ${{ inputs.helm-values.path }} \
+        helm upgrade --install --atomic --wait --timeout 3600s --debug ${{ inputs.helm-release-name}} ./todoapp*.tgz -f ${{ inputs.helm-values.path }} \
           --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
           --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
           --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
