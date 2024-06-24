@@ -40,22 +40,35 @@ jobs:
       with:
         name: helm-artifacts
         path: .
-  
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v4.2.0
+    
+    - name: Set up Kubectl
+      uses: azure/setup-kubectl@v4
+
     - name: Set up kind
       run: |
         kind create cluster --config cluster.yml
 
-    - name: Set up Helm
-      uses: azure/setup-helm@v4.2.0
-
-    - name: Install dependencies
+    - name: Dry Run Helm
       run: |
-        sudo apt-get update
-        sudo apt-get install -y jq
+        helm install --dry-run ${{ inputs.helm-release-name }} ./todoapp-*.tgz  \
+        -f ${{ inputs.helm-values-path }} \
+        --set image.tag=${{ inputs.version }} \
+        --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+        --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+        --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+        --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+        --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+        --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+        --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+        --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+        --set todoapp.image.version="${{ inputs.version }}"
         
     - name: Deploy Helm
       run: |
-        helm upgrade --install --atomic --wait --timeout 1800s --debug ${{ inputs.helm-release-name }} ./helm-charts/todoapp \
+        helm upgrade --install --atomic --wait --timeout 1800s --debug ${{ inputs.helm-release-name }} ./todoapp-*.tgz \
           -f ${{ inputs.helm-values-path }} \
           --set image.tag=${{ inputs.version }} \
           --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
@@ -66,5 +79,4 @@ jobs:
           --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
           --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
           --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-          --set global.environment="${{ inputs.environment }}" \
           --set todoapp.image.version="${{ inputs.version }}"
