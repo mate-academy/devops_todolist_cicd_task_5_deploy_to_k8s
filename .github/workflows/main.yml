@@ -137,4 +137,4 @@ jobs:
       environment: staging
       version: ${{ github.sha }}
       helm-release-name: todoapp-staging
-      helm-values-path: './helm-chart/todoapp/values/stg.yaml'
+      helm-values-path: './helm-charts/todoapp/values/stg.yaml'
