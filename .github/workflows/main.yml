@@ -64,7 +64,7 @@ jobs:
           path: ${{ github.workspace }}/helm-charts
 
   docker-ci:
-    name: Build and Push Image
+    name: Build and Push Docker Image
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'main' }}
     needs: python-ci
@@ -118,3 +118,23 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-dev:
+    name: Deploy Helm
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: [helm-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: development
+
+  deploy-helm-staging:
+    name: Deploy Helm to staging
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: deploy-helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging
+
+
