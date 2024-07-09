@@ -1,5 +1,8 @@
+mysql:
+  namespace: mysql-staging
+  
 todoapp:
-  namespace: todoapp
+  namespace: todoapp-staging
   image:
     repository: ikulyk404/todoapp
 
@@ -10,7 +13,7 @@ todoapp:
     limits:
       memory: "256Mi"
       cpu: "150m"
-
+ 
   hpa:
     minReplicas: 2
     maxReplicas: 5
