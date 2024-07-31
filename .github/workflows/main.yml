@@ -50,18 +50,24 @@ jobs:
         run: |
           flake8 . --exit-zero --max-complexity=6
 
-      - name: Upload python artifacts
+      - name: Upload python App files
         uses: actions/upload-artifact@v4
         with:
-          name: python-artifacts
-          path: .
+          name: python-app-files
+          path: ./src                 # uploading files from "src" directory
 
-      - name: Upload helm artifacts
+      - name: Upload helm charts
         if: github.ref_name == 'main'
         uses: actions/upload-artifact@v4
         with:
-          name: helm-artifacts
-          path: ${{ github.workspace }}/helm-charts
+          name: helm-charts
+          path: ./helm-charts         # uploading "todoapp/" directory
+
+      - name: Upload cluster configs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cluster-artifact
+          path: ./cluster.yml         # uploading "cluster.yml" file
 
   docker-ci:
     name: Build and Push Image
@@ -70,11 +76,11 @@ jobs:
     needs: python-ci
     steps:
 
-    - uses: actions/download-artifact@v4
-      name: Download python artifacts
+    - name: Download App files
+      uses: actions/download-artifact@v4
       with:
-        name: python-artifacts
-        path: .
+        name: python-app-files
+        path: ./src                   # downloading files from "src" directory
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -95,26 +101,47 @@ jobs:
     if: github.ref_name == 'main'
     name: Helm CI
     steps:
-
-    - uses: actions/download-artifact@v4
+    - name: download helm charts
+      uses: actions/download-artifact@v4
       with:
-        name: helm-artifacts
-        path: .
+        name: helm-charts
+        path: .                     # downloading "todoapp/" directory in root
 
     - name: Set Up Helm
       uses: azure/setup-helm@v4.2.0
 
     - name: Lint helm
-      run: helm lint ./todoapp/
+      run: helm lint ./todoapp
 
     - name: Template Helm
       run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
 
     - name: Package Helm
-      run: helm package ./todoapp
+      run: helm package ./todoapp   # packing files from "todoapp" directory in archive "*ChartName-*version.tgz"
 
-    - name: Upload Helm Artifact
+    - name: Upload Helm Package
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
-        path: ./*.tgz
+        path: ./*.tgz               # uploading "*ChartName-*version.tgz"
+
+  helm-cd-dev:
+    name: Helm deployment dev
+    uses: ./.github/workflows/helm-deploy.yml
+    needs: [ "helm-ci", "docker-ci"]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+      helm-release-name: todoapp-dev
+
+  helm-cd-stg:
+    name: Helm deployment stg
+    uses: ./.github/workflows/helm-deploy.yml
+    needs: [ "helm-ci", "docker-ci"]
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      helm-release-name: todoapp-stg
+      helm-values-path: ./todoapp/values/stg.yaml
