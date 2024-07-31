@@ -50,24 +50,24 @@ jobs:
         run: |
           flake8 . --exit-zero --max-complexity=6
 
-      - name: Upload python artifacts
+      - name: Upload python App files
         uses: actions/upload-artifact@v4
         with:
-          name: python-artifacts
-          path: ./src
+          name: python-app-files
+          path: ./src         # uploading files from "src" directory
 
-      - name: Upload helm artifacts
+      - name: Upload helm charts
         if: github.ref_name == 'main'
         uses: actions/upload-artifact@v4
         with:
-          name: helm-artifacts
-          path: ./helm-charts
+          name: helm-charts
+          path: ./helm-charts # uploading "todoapp/" directory
 
       - name: Upload cluster configs
         uses: actions/upload-artifact@v4
         with:
           name: cluster-artifact
-          path: ./cluster.yml
+          path: ./cluster.yml # uploading "cluster.yml" file
 
   docker-ci:
     name: Build and Push Image
@@ -79,8 +79,8 @@ jobs:
     - name: Download App files
       uses: actions/download-artifact@v4
       with:
-        name: python-artifacts
-        path: ./src
+        name: python-app-files
+        path: ./src           # downloading files from "src" directory
 
     - name: Login to Docker Hub
       uses: docker/login-action@v3
@@ -104,48 +104,55 @@ jobs:
     - name: download helm charts
       uses: actions/download-artifact@v4
       with:
-        name: helm-artifacts
-        path: ./helm-charts
+        name: helm-charts
+        path: .                     # downloading "todoapp/" directory in root
 
     - name: Set Up Helm
       uses: azure/setup-helm@v4.2.0
 
     - name: Lint helm
-      run: helm lint ./helm-charts/todoapp/
+      run: helm lint ./todoapp
 
     - name: Template Helm
-      run: helm template todoapp ./helm-charts/todoapp/ -f ./helm-charts/todoapp/values.yaml
+      run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
 
     - name: Package Helm
-      run: helm package ./helm-charts/todoapp
+      run: helm package ./todoapp   # packing files from "todoapp" directory in archive "*ChartName-*version.tgz"
 
-    - name: Upload Helm Artifact
+    - name: Upload Helm Package
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
-        path: ./*.tgz
+        path: ./*.tgz               # uploading "*ChartName-*version.tgz"
 
   helm-cd:
     needs: [ docker-ci, helm-ci ]
     if: github.ref_name == 'main'
+    environment: development
     runs-on: ubuntu-latest
     name: deploy todoapp to kind cluster via Helm
     steps:
     - name: download cluster config
       uses: actions/download-artifact@v4
       with:
-        name: cluster-artifact
+        name: cluster-artifact      # downloading "cluster.yml" file in root
 
     - name: Create k8s Kind Cluster
       uses: helm/kind-action@v1
       with:
         config: ./cluster.yml
 
+    - name: download helm charts
+      uses: actions/download-artifact@v4
+      with:
+        name: helm-charts
+        path: .                     # downloading "todoapp/" directory in root
+
     - name: download helm package
       uses: actions/download-artifact@v4
       with:
-        name: helm-artifacts
-        path: ./helm-charts/todoapp
+        name: helm-package
+        path: .                     # downloading "*ChartName-*version.tgz" in root
 
     - name: Set Up Helm
       uses: azure/setup-helm@v4.2.0
@@ -153,3 +160,30 @@ jobs:
     - name: Set Up kubectl
       uses: azure/setup-kubectl@v4
       id: install
+
+    - name: Helm dry-run
+      run: |
+        helm install --dry-run todoapp ./todoapp-*.tgz \
+        -f ./todoapp/values.yaml \
+        --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
+        --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
+        --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+        --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
+        --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
+        --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} \
+        --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+        --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }}
+
+    - name: helm chart deploying
+      run: |
+        helm upgrade --install --atomic --debug --wait --timeout 3m0s \
+        todoapp ./todoapp-*.tgz \
+        -f ./todoapp/values.yaml \
+        --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
+        --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
+        --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+        --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
+        --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
+        --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} \
+        --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+        --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }}
