@@ -124,3 +124,32 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  helm-cd:
+    needs: [ docker-ci, helm-ci ]
+    if: github.ref_name == 'main'
+    runs-on: ubuntu-latest
+    name: deploy todoapp to kind cluster via Helm
+    steps:
+    - name: download cluster config
+      uses: actions/download-artifact@v4
+      with:
+        name: cluster-artifact
+
+    - name: Create k8s Kind Cluster
+      uses: helm/kind-action@v1
+      with:
+        config: ./cluster.yml
+
+    - name: download helm package
+      uses: actions/download-artifact@v4
+      with:
+        name: helm-artifacts
+        path: ./helm-charts/todoapp
+
+    - name: Set Up Helm
+      uses: azure/setup-helm@v4.2.0
+
+    - name: Set Up kubectl
+      uses: azure/setup-kubectl@v4
+      id: install
