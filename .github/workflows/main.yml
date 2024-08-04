@@ -1,6 +1,6 @@
 name: python-deployment
 
-run-name: ${{ github.actor }} - ${{ github.ref_name}} -${{ github.sha }}
+run-name: ${{ github.actor }} - ${{ github.ref_name }} - ${{ github.sha }}
 
 on:
   push:
@@ -118,3 +118,25 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-development:
+    name: Deploy Helm
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: [helm-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+      helm-values-path: ./todoapp/values.yaml
+      helm-release-name: todoapp
+
+  deploy-helm-staging:
+    name: Deploy Helm - staging
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: deploy-helm-development
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging
