@@ -1,8 +1,8 @@
 mysql:
   secrets:
-    MYSQL_ROOT_PASSWORD: 12345
-    MYSQL_USER: app_user
-    MYSQL_PASSWORD: 1234
+    MYSQL_ROOT_PASSWORD: placeholder
+    MYSQL_USER: placeholder
+    MYSQL_PASSWORD: placeholder
 
 todoapp:
   namespace: todoapp
@@ -23,7 +23,7 @@ todoapp:
     DB_NAME: app_db
     DB_USER: app_user
     DB_PASSWORD: 1234
-    DB_HOST: mysql-0.mysql.mysql.svc.cluster.local
+    DB_HOST: mysql.mysql.svc.cluster.local
 
   hpa:
     minReplicas: 2
