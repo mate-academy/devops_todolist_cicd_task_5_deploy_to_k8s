@@ -63,6 +63,12 @@ jobs:
           name: helm-artifacts
           path: ${{ github.workspace }}/helm-charts
 
+      - name: Upload cluster config
+        uses: actions/upload-artifact@v4
+        with:
+          name: cluster-artifacts
+          path: ./cluster.yml
+
   docker-ci:
     name: Build and Push Image
     runs-on: ubuntu-latest
@@ -118,3 +124,21 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  helm-dev:
+    name: Deploy Helm
+    uses: ./.github/workflows/helm-deploy.yml
+    needs: ['helm-ci', 'docker-ci']
+    secrets: inherit
+    with:
+      environment: dev
+      version: ${{ github.sha }}
+  helm-staging:
+    name: Deploy Helm to Staging
+    uses: ./.github/workflows/helm-deploy.yml
+    needs: helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+
