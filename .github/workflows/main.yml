@@ -101,7 +101,7 @@ jobs:
         name: helm-artifacts
         path: .
 
-    - name: Set Up Helm
+    - name: Setup Helm
       uses: azure/setup-helm@v4.2.0
 
     - name: Lint helm
@@ -118,3 +118,25 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-dev:
+    name: Deploy Helm
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: ["helm-ci", "docker-ci"]
+    secrets: inherit
+    with:
+        environment: development
+        version: ${{ github.sha }}
+        helm-values-path: ./todoapp/values.yaml
+        helm-release-name: todoapp
+
+  deploy-helm-stg:
+    name: Deploy Helm Staging
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: ["deploy-helm-dev"]
+    secrets: inherit
+    with:
+        environment: staging
+        version: ${{ github.sha }}
+        helm-values-path: ./todoapp/values/stg.yaml
+        helm-release-name: todoapp-stg
