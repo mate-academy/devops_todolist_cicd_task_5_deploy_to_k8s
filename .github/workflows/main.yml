@@ -66,6 +66,7 @@ jobs:
   docker-ci:
     name: Build and Push Image
     runs-on: ubuntu-latest
+    environment: developement
     if: ${{ github.ref_name == 'main' }}
     needs: python-ci
     steps:
@@ -113,8 +114,31 @@ jobs:
     - name: Package Helm
       run: helm package ./todoapp
 
-    - name: Upload Helm Artifact
+    - name: Upload Helm Package
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-dev:
+    name: helm deploy
+    uses: ./.github/workflows/developement.yml
+    needs: [helm-ci, python-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: developement
+      version: ${{ github.sha }}
+      helm-values-path: ./helm-charts/todoapp/values.yaml
+      helm-release-name: todoapp-dev
+
+  deploy-helm-stage:
+    name: helm deploy
+    uses: ./.github/workflows/developement.yml
+    needs: deploy-helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      helm-values-path: ./helm-charts/todoapp/values/stg.yaml
+      helm-release-name: todoapp-stage
+

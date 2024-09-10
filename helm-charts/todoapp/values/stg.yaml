@@ -1,7 +1,9 @@
 todoapp:
-  namespace: todoapp
+  namespace: todoapp-stg
   image:
-    repository: ikulyk404/todoapp
+    repository: fredfredburger/todoapp
+mysql:
+  namespace: mysql-stg
 
   resources:
     requests:
