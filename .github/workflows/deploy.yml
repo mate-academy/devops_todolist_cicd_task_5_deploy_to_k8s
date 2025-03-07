@@ -1,0 +1,48 @@
+name: Deploy to Kind Cluster
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download Helm package
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-package
+          path: ./
+
+      - name: Install KinD
+        uses: helm/kind-action@v1.8.0
+
+      - name: Create Kind cluster
+        run: kind create cluster --config=kind-cluster.yml
+
+      - name: Load Docker image into Kind
+        run: |
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/todoapp:${{ github.sha }}
+          kind load docker-image ${{ secrets.DOCKERHUB_USERNAME }}/todoapp:${{ github.sha }}
+
+      - name: Dry-run Helm install
+        run: helm install todoapp ./todoapp/ --dry-run --debug
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install todoapp ./todoapp/ \
+            --set image.repository=${{ secrets.DOCKERHUB_USERNAME }}/todoapp \
+            --set image.tag=${{ github.sha }} \
+            --atomic
