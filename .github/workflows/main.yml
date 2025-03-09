@@ -14,6 +14,7 @@ env:
 
 jobs:
   python-ci:
+    name: Python CI
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -50,18 +51,24 @@ jobs:
         run: |
           flake8 . --exit-zero --max-complexity=6
 
-      - name: Upload python artifacts
+      - name: Upload python artifact
         uses: actions/upload-artifact@v4
         with:
-          name: python-artifacts
+          name: python-artifact
           path: .
 
-      - name: Upload helm artifacts
+      - name: Upload helm artifact
         if: github.ref_name == 'main'
         uses: actions/upload-artifact@v4
         with:
-          name: helm-artifacts
+          name: helm-artifact
           path: ${{ github.workspace }}/helm-charts
+
+      - name: Upload cluster configs
+        uses: actions/upload-artifact@v4
+        with:
+          name: cluster-artifact
+          path: ./cluster.yml
 
   docker-ci:
     name: Build and Push Image
@@ -71,9 +78,9 @@ jobs:
     steps:
 
     - uses: actions/download-artifact@v4
-      name: Download python artifacts
+      name: Download python artifact
       with:
-        name: python-artifacts
+        name: python-artifact
         path: .
 
     - name: Login to Docker Hub
@@ -98,7 +105,7 @@ jobs:
 
     - uses: actions/download-artifact@v4
       with:
-        name: helm-artifacts
+        name: helm-artifact
         path: .
 
     - name: Set Up Helm
@@ -118,3 +125,21 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-dev:
+    name: Deploy Helm
+    uses: ./.github/workflows/cluster-deploy.yml
+    needs: [ helm-ci, docker-ci ]
+    secrets: inherit
+    with:
+      environment: development
+
+  deploy-staging:
+    name: Deploy Helm
+    uses: ./.github/workflows/cluster-deploy.yml
+    needs: deploy-dev
+    secrets: inherit
+    with:
+      environment: staging
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging
