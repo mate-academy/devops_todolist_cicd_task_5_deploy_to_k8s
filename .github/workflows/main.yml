@@ -118,3 +118,20 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+
+  deploy_to_development:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+  deploy_to_staging:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_PASSWORD: ${{ secrets.DOCKERHUB_PASSWORD }}

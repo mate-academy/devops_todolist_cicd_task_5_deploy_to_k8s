@@ -1,0 +1,43 @@
+name: Deploy to Kind Cluster
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_PASSWORD:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Docker auth
+        run: echo "${{ secrets.DOCKERHUB_PASSWORD }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+      - name: Create kind cluster
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.22.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind create cluster --config cluster.yml
+
+      - name: Install Helm
+        uses: azure/setup-helm@v3
+
+      - name: Helm Dry Run
+        run: |
+          helm upgrade --install my-app ./helm-chart --namespace default --create-namespace --dry-run
+
+      - name: Helm Deploy (Atomic)
+        run: |
+          helm upgrade --install my-app ./helm-chart --namespace default --create-namespace --atomic
