@@ -1,29 +1,39 @@
 mysql:
   secrets:
-    MYSQL_ROOT_PASSWORD: 12345
-    MYSQL_USER: app_user
-    MYSQL_PASSWORD: 1234
+    MYSQL_ROOT_PASSWORD: placeholder
+    MYSQL_USER: placeholder
+    MYSQL_PASSWORD: placeholder
 
 todoapp:
+  environment: develop
   namespace: todoapp
   image:
     repository: ikulyk404/todoapp
     tag: "4.0.1"
 
+  service:
+    type: NodePort
+    ports:
+      - name: http
+        port: 80
+        targetPort: 8080
+        nodePort: 30007
+        protocol: TCP
+
   resources:
     requests:
       memory: "256Mi"
-      cpu: "150m"
+      cpu: "350m"
     limits:
       memory: "256Mi"
-      cpu: "150m"
+      cpu: "350m"
 
   secrets:
-    SECRET_KEY: zdfsadfsadfsfs
-    DB_NAME: app_db
-    DB_USER: app_user
-    DB_PASSWORD: 1234
-    DB_HOST: mysql-0.mysql.mysql.svc.cluster.local
+    SECRET_KEY: placeholder
+    DB_NAME: placeholder
+    DB_USER: placeholder
+    DB_PASSWORD: placeholder
+    DB_HOST: placeholder
 
   hpa:
     minReplicas: 2

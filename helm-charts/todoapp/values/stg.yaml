@@ -1,19 +1,28 @@
 todoapp:
-  namespace: todoapp
+  environment: staging
+  namespace: todoapp-staging
   image:
     repository: ikulyk404/todoapp
+  service:
+    type: NodePort
+    ports:
+      - name: http
+        port: 80
+        targetPort: 8080
+        nodePort: 30008
+        protocol: TCP
 
+mysql:
+  namespace: mysql-staging
   resources:
     requests:
-      memory: "256Mi"
-      cpu: "150m"
+      cpu: "350m"
     limits:
-      memory: "256Mi"
-      cpu: "150m"
+      cpu: "350m"
 
   hpa:
-    minReplicas: 2
-    maxReplicas: 5
+    minReplicas: 1
+    maxReplicas: 2
     cpu:
       avarageUtilization: 70
     memory:
