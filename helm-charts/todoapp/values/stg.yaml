@@ -1,8 +1,12 @@
 todoapp:
-  namespace: todoapp
+  namespace: todoapp-staging
   image:
     repository: ikulyk404/todoapp
+  service:
+    nodePort: 30008
 
+mysql:
+  namespace: mysql-staging
   resources:
     requests:
       memory: "256Mi"
@@ -15,9 +19,9 @@ todoapp:
     minReplicas: 2
     maxReplicas: 5
     cpu:
-      avarageUtilization: 70
+      averageUtilization: 70
     memory:
-      avarageUtilization: 70
+      averageUtilization: 70
 
   volumes:
     persistentVolume:
