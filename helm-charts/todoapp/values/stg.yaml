@@ -1,7 +1,8 @@
 todoapp:
-  namespace: todoapp
+  namespace: todoapp-staging
   image:
     repository: ikulyk404/todoapp
+  nodeport: 30008
 
   resources:
     requests:
@@ -15,12 +16,15 @@ todoapp:
     minReplicas: 2
     maxReplicas: 5
     cpu:
-      avarageUtilization: 70
+      averageUtilization: 70
     memory:
-      avarageUtilization: 70
+      averageUtilization: 70
 
   volumes:
     persistentVolume:
       capacity: "1Gi"
     persistentVolumeClaim:
       requestStorage: "1Gi"
+
+mysql:
+  namespace: mysql-staging
