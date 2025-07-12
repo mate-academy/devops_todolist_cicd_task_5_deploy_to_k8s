@@ -118,3 +118,19 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-dev:
+    uses: ./.github/workflows/deploy_cluster.yml
+    needs: helm-ci
+    with:
+      environment: dev
+      helm-values-path: ./helm-charts/todoapp/values.yaml
+      helm-release-name: todoapp
+
+  deploy-stg:
+    uses: ./.github/workflows/deploy_cluster.yml
+    needs: helm-ci
+    with:
+      environment: stg
+      helm-values-path: ./helm-charts/todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging
