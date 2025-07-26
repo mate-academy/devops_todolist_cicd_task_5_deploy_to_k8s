@@ -1,0 +1,40 @@
+name: Cluster by kind
+
+run-name: ${{ github.actor }} - ${{ github.ref_name }} -${{ github.sha }}
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Spinning up cluster from cluster.yml
+        run: kind create cluster --config cluster.yml
+
+      - name: Helm dry-run stage
+        run: |
+          helm upgrade --install my-release ./charts \
+            --namespace default \
+            --dry-run
+
+      - name: Helm upgrade/install atomic
+        run: |
+          helm upgrade --install my-release ./charts \
+            --namespace default \
+            --atomic
+
+
