@@ -1,0 +1,82 @@
+name: Deploy to Kind Cluster
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+      APP_SECRET_KEY:
+        required: true
+      DB_NAME:
+        required: true
+      DB_USER:
+        required: true
+      DB_PASSWORD:
+        required: true
+      MYSQL_ROOT_PASSWORD:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download python artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: python-artifacts
+          path: src
+
+      - name: Download helm artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-artifacts
+          path: helm-charts
+
+      - name: Set up Kind
+        uses: helm/kind-action@v1.9.0
+        with:
+          config: cluster.yml
+
+      - name: Build Docker Image for Kind
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/todoapp:latest
+          load: true
+
+      - name: Load MySQL image into Kind
+        run: |
+          docker pull mysql:8.0.33
+          kind load docker-image mysql:8.0.33 --name chart-testing
+
+      - name: Clean up existing namespace (if any)
+        run: kubectl delete namespace todoapp || true
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Helm Lint
+        run: helm lint ./helm-charts/todoapp/
+
+      - name: Helm Dry Run Install
+        run: |
+          echo "helm install todoapp ./helm-charts/todoapp --namespace todoapp --create-namespace --dry-run --debug --set todoapp.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/todoapp --set todoapp.image.tag=latest --set todoapp.secrets.SECRET_KEY=${{ secrets.APP_SECRET_KEY }} --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} --set mysql.secrets.MYSQL_USER=${{ secrets.DB_USER }} --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.DB_PASSWORD }}" > helm_dry_run_install.sh
+          bash helm_dry_run_install.sh
+
+      - name: Helm Upgrade --install --atomic
+        run: |
+          echo "helm upgrade --install todoapp ./helm-charts/todoapp --namespace todoapp --create-namespace --atomic --timeout 10m0s --set todoapp.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/todoapp --set todoapp.image.tag=latest --set todoapp.secrets.SECRET_KEY=${{ secrets.APP_SECRET_KEY }} --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} --set mysql.secrets.MYSQL_USER=${{ secrets.DB_USER }} --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.DB_PASSWORD }}" > helm_upgrade_install.sh
+          bash helm_upgrade_install.sh
+
+      - name: Get Pods Status
+        run: kubectl get pods -n todoapp
