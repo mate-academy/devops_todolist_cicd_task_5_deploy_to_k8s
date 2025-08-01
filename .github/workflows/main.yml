@@ -96,7 +96,8 @@ jobs:
     name: Helm CI
     steps:
 
-    - uses: actions/download-artifact@v4
+    - name: Download Helm Package Artifact
+      uses: actions/download-artifact@v4
       with:
         name: helm-artifacts
         path: .
@@ -118,3 +119,25 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-development:
+    name: Deploy to Kind (Development)
+    uses: ./.github/workflows/reusable-deploy.yml
+    needs: helm-ci
+    with:
+      environment: development
+      image: ${{ secrets.DOCKERHUB_USERNAME }}/todoapp:${{ github.sha }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  deploy-staging:
+    name: Deploy to Kind (Staging)
+    uses: ./.github/workflows/reusable-deploy.yml
+    needs: helm-ci
+    with:
+      environment: staging
+      image: ${{ secrets.DOCKERHUB_USERNAME }}/todoapp:${{ github.sha }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
