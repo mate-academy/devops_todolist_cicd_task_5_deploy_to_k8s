@@ -1,0 +1,55 @@
+name: Helm Upgrade
+run-name: ${{ github.actor }} - ${{ github.ref_name }}
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        description: "Environment to deploy to"
+        type: string
+      helm-values-path:
+        type: string
+        default: './todoapp/values.yaml'
+      helm-release-name:
+        description: "Name of the helm release"
+        default: todoapp
+        type: string
+
+
+
+jobs:
+  deploy-helm:
+    name: Deploy ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v4.2.0
+
+
+    - name: Install kind
+      run: |
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+        chmod +x ./kind
+        sudo mv ./kind /usr/local/bin/kind
+
+    - name: Create cluster from cluster.yml
+      run: kind create cluster --config cluster.yml
+
+
+    - name: Helm dry-run stage
+      run: |
+        helm upgrade --install ${{ inputs.helm-release-name }} -f ${{ inputs.helm-values-path }} \
+          --namespace default \
+          --dry-run
+
+    - name: Helm upgrade/install atomic
+      run: |
+        helm upgrade --install ${{ inputs.helm-release-name }} -f ${{ inputs.helm-values-path }} \
+          --namespace default \
+          --atomic
