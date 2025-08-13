@@ -1,0 +1,26 @@
+todoapp:
+  namespace: todoapp
+  image:
+    repository: DOCKERHUB_USERNAME/todoapp
+
+  resources:
+    requests:
+      memory: "128Mi"
+      cpu: "100m"
+    limits:
+      memory: "256Mi"
+      cpu: "200m"
+
+  hpa:
+    minReplicas: 1
+    maxReplicas: 3
+    cpu:
+      avarageUtilization: 80
+    memory:
+      avarageUtilization: 80
+
+  volumes:
+    persistentVolume:
+      capacity: "500Mi"
+    persistentVolumeClaim:
+      requestStorage: "500Mi"
