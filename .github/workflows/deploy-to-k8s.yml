@@ -1,0 +1,170 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'development'
+        type: choice
+        options:
+          - development
+          - staging
+          - production
+
+env:
+  HELM_VERSION: '3.12.0'
+  KIND_VERSION: 'v0.20.0'
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/devops-todolist
+
+jobs:
+  prepare:
+    name: Prepare repository
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Upload repository content
+      uses: actions/upload-artifact@v4
+      with:
+        name: repository-content
+        path: .
+        retention-days: 5
+
+  docker-ci:
+    name: Docker CI
+    runs-on: ubuntu-latest
+    needs: prepare
+
+    steps:
+    - name: Download repository content
+      uses: actions/download-artifact@v4
+      with:
+        name: repository-content
+        path: .
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+        pip install coverage flake8
+
+    - name: Run tests with coverage
+      run: |
+        if [ -d "tests" ]; then
+          coverage run -m pytest tests/ -v
+        else
+          echo "No tests found, skipping test execution"
+        fi
+
+    - name: Login to DockerHub
+      uses: docker/login-action@v3
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_PASSWORD }}
+
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: |
+          ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}
+          ${{ env.DOCKER_IMAGE_NAME }}:latest
+
+    - name: Upload image metadata
+      uses: actions/upload-artifact@v4
+      with:
+        name: image-metadata
+        path: |
+          Dockerfile
+          requirements.txt
+        retention-days: 5
+
+  deploy-to-kind:
+    name: Deploy to Kind - ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    needs: [prepare, docker-ci]
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+    - name: Download repository content
+      uses: actions/download-artifact@v4
+      with:
+        name: repository-content
+        path: .
+
+    - name: Set up Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: ${{ env.HELM_VERSION }}
+
+    - name: Set up Kind
+      run: |
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/${{ env.KIND_VERSION }}/kind-linux-amd64
+        chmod +x ./kind
+        sudo mv ./kind /usr/local/bin/kind
+
+    - name: Create Kind cluster
+      run: |
+        if [ -f "cluster.yml" ]; then
+          kind create cluster --config cluster.yml --name ${{ github.event.inputs.environment }}
+        else
+          kind create cluster --name ${{ github.event.inputs.environment }}
+        fi
+        kubectl cluster-info --context kind-${{ github.event.inputs.environment }}
+
+    - name: Helm dry-run
+      run: |
+        if [ -f "chart/Chart.yaml" ]; then
+          helm upgrade --install devops-todolist chart/ \
+            --namespace ${{ github.event.inputs.environment }} \
+            --create-namespace \
+            --set image.repository=${{ env.DOCKER_IMAGE_NAME }} \
+            --set image.tag=${{ github.sha }} \
+            --dry-run \
+            --debug
+        else
+          echo "No Helm chart found for dry-run"
+        fi
+
+    - name: Helm upgrade --install (atomic)
+      run: |
+        if [ -f "chart/Chart.yaml" ]; then
+          helm upgrade --install devops-todolist chart/ \
+            --namespace ${{ github.event.inputs.environment }} \
+            --create-namespace \
+            --set image.repository=${{ env.DOCKER_IMAGE_NAME }} \
+            --set image.tag=${{ github.sha }} \
+            --atomic \
+            --timeout 5m \
+            --wait
+        else
+          echo "No Helm chart found for deployment"
+          exit 1
+        fi
+
+    - name: Verify deployment
+      run: |
+        kubectl get pods -n ${{ github.event.inputs.environment }}
+        kubectl get svc -n ${{ github.event.inputs.environment }}
+        echo "✅ Successfully deployed to ${{ github.event.inputs.environment }} environment"
+
+    - name: Upload deployment info
+      uses: actions/upload-artifact@v4
+      with:
+        name: deployment-info-${{ github.event.inputs.environment }}
+        path: |
+          chart/
+        retention-days: 5

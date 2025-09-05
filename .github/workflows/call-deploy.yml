@@ -1,0 +1,22 @@
+name: Call Deploy Workflows
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy-development:
+    name: Deploy to Development
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: development
+      image-tag: ${{ github.sha }}
+    secrets: inherit
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: deploy-development
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: staging
+      image-tag: ${{ github.sha }}
+    secrets: inherit
