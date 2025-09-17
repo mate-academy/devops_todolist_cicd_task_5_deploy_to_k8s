@@ -12,30 +12,63 @@ on:
       kind-release-name:
         default: 'my-release'
         type: string
+      version:
+        required: true
+        description: 'Image tag or version to deploy'
+        type: string
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
+
     steps:
       - name: Repository Checkout
         uses: actions/checkout@v4
 
-      - name: Spin Up Kind
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Install kind
         run: |
           curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
           chmod +x ./kind
           sudo mv ./kind /usr/local/bin/kind
+
       - name: Spinning up cluster from cluster.yml
         run: kind create cluster --config cluster.yml
 
+      - name: Load built image into kind
+        run: |
+          kind load docker-image todoapp:${{ inputs.version }}
+
+      - name: Create imagePullSecret
+        run: |
+          kubectl create secret docker-registry regcred \
+            --docker-username="${{ secrets.REGISTRY_USER }}" \
+            --docker-password="${{ secrets.REGISTRY_PASS }}" \
+            --docker-server="${{ secrets.REGISTRY_SERVER }}" \
+            --namespace default
+
       - name: Helm dry-run
         run: |
-          helm upgrade --install my-release ./charts \
+          helm upgrade --install ${{ inputs.kind-release-name }} ./todoapp \
             --namespace default \
+            --set image.tag=${{ inputs.version }} \
+            --set image.pullSecrets[0].name=regcred \
             --dry-run
+
       - name: Helm atomic upgrade
         run: |
-          helm upgrade --install my-release ./charts \
+          helm upgrade --install ${{ inputs.kind-release-name }} ./todoapp \
             --namespace default \
+            --set image.tag=${{ inputs.version }} \
+            --set image.pullSecrets[0].name=regcred \
             --atomic
