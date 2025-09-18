@@ -1,8 +1,11 @@
 todoapp:
-  namespace: todoapp
+  environment: staging
+  namespace: todoapp-staging
   image:
     repository: ikulyk404/todoapp
 
+mysql:
+  namespace: mysql-staging
   resources:
     requests:
       memory: "256Mi"
