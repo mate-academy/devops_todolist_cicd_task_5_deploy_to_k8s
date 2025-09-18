@@ -1,0 +1,119 @@
+name: Cluster Deployment
+
+run-name: ${{ github.actor }} - ${{ github.ref_name }}
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        description: 'Deployment environment'
+        type: string
+      kind-release-name:
+        default: 'my-release'
+        type: string
+      version:
+        required: true
+        description: 'Image tag or version to deploy'
+        type: string
+
+env:
+  DockerImageName: todoapp
+  CHART_PATH: ./helm-charts/todoapp
+
+jobs:
+  deploy:
+    environment: ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Repository Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: 'latest'
+
+      - name: Install kind
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Create kind cluster from cluster.yml
+        run: kind create cluster --config cluster.yml
+
+      - name: Ensure kubectl context / cluster is reachable
+        run: |
+          CURRENT_CONTEXT="$(kubectl config current-context || true)"
+          if [ -z "$CURRENT_CONTEXT" ]; then
+            kubectl config view
+            exit 1
+          fi
+          kubectl config use-context "$CURRENT_CONTEXT"
+          kubectl cluster-info
+          kubectl get nodes --no-headers
+
+      - name: Login to Docker registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.REGISTRY_SERVER }}
+          username: ${{ secrets.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_PASS }}
+
+      - name: Define image variables
+        run: |
+          echo "IMAGE_REPOSITORY=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}" >> $GITHUB_ENV
+          echo "IMAGE_TAG=${{ inputs.version }}" >> $GITHUB_ENV
+          echo "FULL_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ inputs.version }}" >> $GITHUB_ENV
+
+      - name: Pull image
+        run: docker pull "$FULL_IMAGE" || true
+
+      - name: Load built image into kind
+        run: kind load docker-image "$FULL_IMAGE"
+
+      - name: Create imagePullSecret in cluster
+        run: |
+          kubectl create secret docker-registry regcred \
+            --docker-username="${{ secrets.REGISTRY_USER }}" \
+            --docker-password="${{ secrets.REGISTRY_PASS }}" \
+            --docker-server="${{ secrets.REGISTRY_SERVER }}" \
+            --namespace default || true
+
+      - name: Helm dry-run install
+        run: |
+          helm install "${{ inputs.kind-release-name }}" "${{ env.CHART_PATH }}" \
+            --namespace default \
+            --create-namespace \
+            --set image.repository="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}" \
+            --set image.tag="${{ inputs.version }}" \
+            --set image.pullSecrets[0].name=regcred \
+            --dry-run --debug
+
+      - name: Helm dry-run upgrade
+        run: |
+          helm upgrade --install "${{ inputs.kind-release-name }}" "${{ env.CHART_PATH }}" \
+            --namespace default \
+            --set image.repository="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}" \
+            --set image.tag="${{ inputs.version }}" \
+            --set image.pullSecrets[0].name=regcred \
+            --dry-run --debug
+
+      - name: Helm atomic upgrade
+        run: |
+          helm upgrade --install "${{ inputs.kind-release-name }}" "${{ env.CHART_PATH }}" \
+            --namespace default \
+            --set image.repository="${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}" \
+            --set image.tag="${{ inputs.version }}" \
+            --set image.pullSecrets[0].name=regcred \
+            --atomic --wait --timeout 10m
