@@ -15,10 +15,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/download-artifact@v4
-      with:
-        name: helm-package
-        path: .
+
+    - name: Checkout
+      uses: actions/checkout@v4    
+
     - name: Disable swap
       run: sudo swapoff -a
 
@@ -32,6 +32,11 @@ jobs:
     - name: Set up Helm
       uses: azure/setup-helm@v4
 
+    - uses: actions/download-artifact@v4
+      with:
+        name: helm-package
+        path: .
+        
     - name: Helm dry run
       run: |
         helm upgrade --install --dry-run todoapp ./todoapp-*.tgz \
