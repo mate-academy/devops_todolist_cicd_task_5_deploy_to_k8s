@@ -49,17 +49,6 @@ jobs:
             --create-namespace \
             --values ${{ inputs.helm-values-path }} \
             --atomic
-            
-      - name: Get pods status
-        run: kubectl get pods -n ${{ inputs.environment }}
-
-      - name: Describe pods with label app=todoapp
-        run: kubectl describe pods -l app=todoapp -n ${{ inputs.environment }} || true
-
-      - name: Fetch logs for todoapp pod(s)
-        run: kubectl logs -l app=todoapp -n ${{ inputs.environment }} || true
-      - name: Get deployment status
-        run: kubectl get deployment -n ${{ inputs.environment }}
 
 
 
