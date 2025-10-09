@@ -121,14 +121,14 @@ jobs:
 
   deploy-development:
     uses: ./.github/workflows/deploy-kind.yml
-    needs: docker-ci
+    needs: [docker-ci, helm-ci]
     with:
       environment: development
       image_tag: ${{ github.sha }}
 
   deploy-staging:
     uses: ./.github/workflows/deploy-kind.yml
-    needs: docker-ci
+    needs: [docker-ci, helm-ci]
     with:
       environment: staging
       image_tag: ${{ github.sha }}
