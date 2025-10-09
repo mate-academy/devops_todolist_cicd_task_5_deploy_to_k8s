@@ -48,82 +48,16 @@ jobs:
             --namespace ${{ inputs.environment }} \
             --create-namespace \
             --values ${{ inputs.helm-values-path }} \
-# name: Deploy to Kind Cluster
+      - name: Get pods status
+        run: kubectl get pods -n ${{ inputs.environment }}
 
-# on:
-#   workflow_call:
-#     inputs:
-#       environment:
-#         required: true
-#         type: string
-#       image_tag:
-#         required: true
-#         type: string
+      - name: Describe pods with label app=todoapp
+        run: kubectl describe pods -l app=todoapp -n ${{ inputs.environment }} || true
 
-# jobs:
-#   deploy:
-#     runs-on: ubuntu-latest
-
-#     steps:
-#       - name: Checkout repo
-#         uses: actions/checkout@v4
-
-#       - name: Disable swap
-#         run: sudo swapoff -a
-
-#       - name: Set up kind cluster
-#         uses: helm/kind-action@v1
-#         with:
-#           config: ./helm-charts/todoapp/cluster.yml
-#           wait: 90s
-
-#       - name: Set up Helm
-#         uses: azure/setup-helm@v4
-
-#       - name: Lint helm
-#         run: helm lint ./helm-charts/todoapp
-
-#       - name: Package Helm chart
-#         run: helm package ./helm-charts/todoapp --destination ./helm-charts/todoapp
+      - name: Fetch logs for todoapp pod(s)
+        run: kubectl logs -l app=todoapp -n ${{ inputs.environment }} || true
+      - name: Get deployment status
+        run: kubectl get deployment -n ${{ inputs.environment }}
 
 
-#       # - name: Helm dry run
-#       #   run: |
-#       #     FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
-#       #     helm upgrade --install --dry-run todoapp "$FILE" \
-#       #       -f ./helm-charts/todoapp/values.yaml \
-#       #       --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-#       #       --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
-#       #       --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
-#       #       --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-#       #       --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
-#       #       --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
-#       #       --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-#       #       --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
-#       #       --set todoapp.image.tag=${{ inputs.image_tag }}
 
-#       # - name: Helm upgrade install atomic
-#       #   run: |
-#       #     FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
-#       #     helm upgrade --install --wait --timeout 30s todoapp "$FILE" \
-#       #       -f ./helm-charts/todoapp/values.yaml \
-#       #       --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-#       #       --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
-#       #       --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
-#       #       --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-#       #       --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
-#       #       --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
-#       #       --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-#       #       --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
-#       #       --set todoapp.image.tag=${{ github.sha }}
-#       - name: Helm dry-run stage
-#         run: |
-#           helm upgrade --install my-release ./charts \
-#             --namespace default \
-#             --dry-run
-
-#       - name: Helm upgrade/install atomic
-#         run: |
-#           helm upgrade --install my-release ./charts \
-#             --namespace default \
-#             --atomic
