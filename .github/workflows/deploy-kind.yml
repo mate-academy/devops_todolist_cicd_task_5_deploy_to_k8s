@@ -48,6 +48,8 @@ jobs:
             --namespace ${{ inputs.environment }} \
             --create-namespace \
             --values ${{ inputs.helm-values-path }} \
+            --atomic
+            
       - name: Get pods status
         run: kubectl get pods -n ${{ inputs.environment }}
 
