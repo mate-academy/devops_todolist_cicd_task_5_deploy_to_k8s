@@ -87,7 +87,7 @@ jobs:
       with:
         push: true
         context: ./src
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/todoapp:${{ github.sha }}
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
 
   helm-ci:
     runs-on: ubuntu-latest
@@ -119,14 +119,19 @@ jobs:
         name: helm-package
         path: ./*.tgz
 
-  deploy-kind:
+  deploy-development:
     uses: ./.github/workflows/deploy-kind.yml
-    needs: [docker-ci]
-    if: github.ref_name == 'main'
+    needs: docker-ci
     with:
       environment: development
       image_tag: ${{ github.sha }}
 
+  deploy-staging:
+    uses: ./.github/workflows/deploy-kind.yml
+    needs: docker-ci
+    with:
+      environment: staging
+      image_tag: ${{ github.sha }}
   # deploy-helm:
   #   name: Deploy Helm
   #   needs: [docker-ci, helm-ci]

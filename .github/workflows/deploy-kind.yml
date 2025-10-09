@@ -10,14 +10,13 @@ on:
         required: true
         type: string
 
-env:
-  DockerImageName: todoapp
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
     steps:
+    - name: Disable swap
+      run: sudo swapoff -a
+
     - name: Checkout repo
       uses: actions/checkout@v4
 
