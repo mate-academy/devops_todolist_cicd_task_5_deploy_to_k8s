@@ -119,19 +119,19 @@ jobs:
         name: helm-package
         path: ./*.tgz
 
-  # deploy-development:
-  #   uses: ./.github/workflows/deploy-kind.yml
-  #   needs: [docker-ci, helm-ci]
-  #   with:
-  #     environment: development
-  #     image_tag: ${{ github.sha }}
+  deploy-development:
+    uses: ./.github/workflows/deploy-kind.yml
+    needs: [docker-ci, helm-ci]
+    with:
+      environment: development
+      image_tag: ${{ github.sha }}
 
-  # deploy-staging:
-  #   uses: ./.github/workflows/deploy-kind.yml
-  #   needs: [docker-ci, helm-ci]
-  #   with:
-  #     environment: staging
-  #     image_tag: ${{ github.sha }}
+  deploy-staging:
+    uses: ./.github/workflows/deploy-kind.yml
+    needs: [docker-ci, helm-ci]
+    with:
+      environment: staging
+      image_tag: ${{ github.sha }}
   # deploy-helm:
   #   name: Deploy Helm
   #   needs: [docker-ci, helm-ci]
