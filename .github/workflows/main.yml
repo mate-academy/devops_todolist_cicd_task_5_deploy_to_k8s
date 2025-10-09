@@ -152,20 +152,35 @@ jobs:
         resource-group: ${{ vars.AZURE_RESOURCE_GROUP }}
         cluster-name: ${{ vars.AZURE_CLUSTER_NAME }}
 
+    - name: Set up kind
+      uses: helm/kind-action@v1.0.0
+      with:
+        config: ./cluster.yml
+
+    - name: Helm Dry Run
+      run: |
+        helm upgrade --install --dry-run todoapp ./todoapp-*.tgz \
+        -f ./todoapp/values.yaml \
+        --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+        --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+        --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+        --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+        --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+        --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+        --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+        --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+        --set todoapp.image.tag=${{ github.sha }}        
+
     - name: Deploy helm to Development
       run: |
-        helm upgrade --install --atomic --wait --timeout 3600s --debug todoapp ./todoapp-*.tgz -f ./todoapp/values.yaml --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" --set todoapp.secrets.SECRET_KEY"=${{ secrets.SECRET_KEY }}" --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }}" --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }}" --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }}" --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }}" --set todoapp.image.tag=${{ github.sha }}
-
-
-        mysql:
-          secrets:
-          MYSQL_ROOT_PASSWORD: 12345
-          MYSQL_USER: app_user
-          MYSQL_PASSWORD: 1234
-        todoapp:
-          secrets:
-          SECRET_KEY: zdfsadfsadfsfs
-          DB_NAME: app_db
-          DB_USER: app_user
-          DB_PASSWORD: 1234
-          DB_HOST: mysql-0.mysql.mysql.svc.cluster.local
+        helm upgrade --install --atomic --wait --timeout 180s --debug todoapp ./todoapp-*.tgz \
+        -f ./todoapp/values.yaml \
+        --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+        --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+        --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+        --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+        --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+        --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+        --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+        --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+        --set todoapp.image.tag=${{ github.sha }}
