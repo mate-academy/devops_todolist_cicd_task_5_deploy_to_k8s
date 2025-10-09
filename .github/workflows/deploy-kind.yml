@@ -36,29 +36,45 @@ jobs:
       - name: Package Helm chart
         run: helm package ./helm-charts/todoapp --destination ./helm-charts/todoapp
 
+
       - name: Helm dry run
         run: |
           FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
           helm upgrade --install --dry-run todoapp "$FILE" \
             -f ./helm-charts/todoapp/values.yaml \
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+            --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
             --set todoapp.image.tag=${{ inputs.image_tag }}
 
       - name: Helm upgrade install atomic
         run: |
           FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
-          helm upgrade --install --atomic --wait --timeout 180s todoapp "$FILE" \
+          helm upgrade --install --atomic --wait --timeout 300s todoapp "$FILE" \
             -f ./helm-charts/todoapp/values.yaml \
-            --set todoapp.image.tag=${{ inputs.image_tag }}
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+            --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+            --set todoapp.image.tag=${{ github.sha }}
 
+      # Debugging steps in case of failure:
 
-    env:
-      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-      MYSQL_USER: ${{ secrets.MYSQL_USER }}
-      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_HOST: ${{ secrets.DB_HOST }}
+      - name: Print pods
+        run: kubectl get pods -A
+
+      - name: Describe todoapp pod(s)
+        run: kubectl describe pods -l app=todoapp || true
+
+      - name: Pod logs
+        run: kubectl logs -l app=todoapp || true
+
