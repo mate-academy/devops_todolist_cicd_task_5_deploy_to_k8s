@@ -49,6 +49,3 @@ jobs:
             --create-namespace \
             --values ${{ inputs.helm-values-path }} \
             --atomic
-
-
-
