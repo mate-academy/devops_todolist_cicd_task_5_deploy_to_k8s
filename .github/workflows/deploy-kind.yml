@@ -48,7 +48,6 @@ jobs:
             --namespace ${{ inputs.environment }} \
             --create-namespace \
             --values ${{ inputs.helm-values-path }} \
-            --atomic
 # name: Deploy to Kind Cluster
 
 # on:
