@@ -15,7 +15,6 @@ on:
 
 jobs:
   deploy-to-kind:
-    needs: docker-ci
     runs-on: ubuntu-latest
     name: Deploy to Kind (${{ inputs.environment }})
     environment: ${{ inputs.environment }}
