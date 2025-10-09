@@ -37,43 +37,43 @@ jobs:
         run: helm package ./helm-charts/todoapp --destination ./helm-charts/todoapp
 
 
-      - name: Helm dry run
+      # - name: Helm dry run
+      #   run: |
+      #     FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
+      #     helm upgrade --install --dry-run todoapp "$FILE" \
+      #       -f ./helm-charts/todoapp/values.yaml \
+      #       --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+      #       --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+      #       --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+      #       --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+      #       --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+      #       --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+      #       --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+      #       --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+      #       --set todoapp.image.tag=${{ inputs.image_tag }}
+
+      # - name: Helm upgrade install atomic
+      #   run: |
+      #     FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
+      #     helm upgrade --install --wait --timeout 30s todoapp "$FILE" \
+      #       -f ./helm-charts/todoapp/values.yaml \
+      #       --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+      #       --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+      #       --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+      #       --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+      #       --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+      #       --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+      #       --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+      #       --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+      #       --set todoapp.image.tag=${{ github.sha }}
+      - name: Helm dry-run stage
         run: |
-          FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
-          helm upgrade --install --dry-run todoapp "$FILE" \
-            -f ./helm-charts/todoapp/values.yaml \
-            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-            --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
-            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
-            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-            --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
-            --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
-            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-            --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
-            --set todoapp.image.tag=${{ inputs.image_tag }}
+          helm upgrade --install my-release ./charts \
+            --namespace default \
+            --dry-run
 
-      - name: Helm upgrade install atomic
+      - name: Helm upgrade/install atomic
         run: |
-          FILE=$(ls ./helm-charts/todoapp/todoapp-*.tgz)
-          helm upgrade --install --wait --timeout 30s todoapp "$FILE" \
-            -f ./helm-charts/todoapp/values.yaml \
-            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-            --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
-            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
-            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-            --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
-            --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
-            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-            --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
-            --set todoapp.image.tag=${{ github.sha }}
-
-      # Debugging steps in case of failure:
-
-      - name: Print pods
-        run: kubectl get pods -A
-
-      - name: Describe todoapp pod(s)
-        run: kubectl describe pods -l app=todoapp || true
-
-      - name: Pod logs
-        run: kubectl logs -l app=todoapp || true
+          helm upgrade --install my-release ./charts \
+            --namespace default \
+            --atomic
