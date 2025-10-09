@@ -13,12 +13,15 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
+    - uses: actions/download-artifact@v4
+      with:
+        name: helm-package
+        path: .
     - name: Disable swap
       run: sudo swapoff -a
 
-    - name: Checkout repo
-      uses: actions/checkout@v4
 
     - name: Set up kind cluster
       uses: helm/kind-action@v1
@@ -31,7 +34,7 @@ jobs:
 
     - name: Helm dry run
       run: |
-        helm upgrade --install --dry-run todoapp ./helm-charts/todoapp-*.tgz \
+        helm upgrade --install --dry-run todoapp ./todoapp-*.tgz \
         -f ./helm-charts/todoapp/values.yaml \
         --set todoapp.image.tag=${{ inputs.image_tag }}
 
