@@ -1,0 +1,111 @@
+# .github/workflows/ci-cd.yml
+name: "Python + Docker + Helm CI/CD"
+run-name: "CI/CD by ${{ github.actor }} @ ${{ github.sha }}"
+
+on:
+  push:
+    branches: [ci_cd] # ← твоя гілка
+  pull_request:
+    branches: [main]
+
+env:
+  PY_VERSION: "3.11"
+  IMAGE_NAME: "vitalysemeniv/todoapp"
+  SRC_DIR: "workspace/src"
+  CHART_DIR: "workspace/helm-charts/todoapp"
+  CLUSTER_CFG: "workspace/cluster.yml"
+  RELEASE_NAME: "todoapp"
+
+jobs:
+  prepare-src:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Upload source
+        uses: actions/upload-artifact@v4
+        with:
+          name: source-${{ github.sha }}
+          path: ./
+
+  python-ci:
+    needs: prepare-src
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download source
+        uses: actions/download-artifact@v4
+        with:
+          name: source-${{ github.sha }}
+          path: workspace
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PY_VERSION }}
+
+      - name: Install deps
+        working-directory: ${{ env.SRC_DIR }}
+        run: |
+          pip install -U pip
+          pip install -r requirements.txt
+          pip install coverage flake8
+
+      - name: Run tests
+        working-directory: ${{ env.SRC_DIR }}
+        run: |
+          coverage run manage.py test
+          coverage report -m
+
+  docker-ci:
+    needs: [prepare-src, python-ci]
+    runs-on: ubuntu-latest
+    environment: development
+    if: ${{ github.event_name == 'push' && github.repository_owner == 'VitaliySemeniv' }}
+    steps:
+      - name: Download source
+        uses: actions/download-artifact@v4
+        with:
+          name: source-${{ github.sha }}
+          path: workspace
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push image
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ env.SRC_DIR }}
+          file: ${{ env.SRC_DIR }}/Dockerfile
+          push: true
+          tags: vitalysemeniv/todoapp:${{ github.sha }} # ← без env.
+
+  deploy-dev:
+    needs: [docker-ci]
+    uses: ./.github/workflows/deploy-kind.yml
+    if: ${{ github.event_name == 'push' && github.repository_owner == 'VitaliySemeniv' }}
+    with:
+      env_name: development
+      chart_dir: workspace/helm-charts/todoapp
+      release_name: todoapp
+      namespace: todo-dev
+      cluster_config: workspace/cluster.yml
+      image_name: "vitalysemeniv/todoapp" # ← передано як рядок
+      image_tag: ${{ github.sha }}
+    secrets: inherit
+
+  deploy-staging:
+    needs: [docker-ci]
+    uses: ./.github/workflows/deploy-kind.yml
+    if: ${{ github.event_name == 'push' && github.repository_owner == 'VitaliySemeniv' }}
+    with:
+      env_name: staging
+      chart_dir: workspace/helm-charts/todoapp
+      release_name: todoapp
+      namespace: todo-staging
+      cluster_config: workspace/cluster.yml
+      image_name: "vitalysemeniv/todoapp" # ← передано як рядок
+      image_tag: ${{ github.sha }}
+    secrets: inherit
