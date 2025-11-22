@@ -61,7 +61,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: helm-artifacts
-          path: ${{ github.workspace }}/helm-charts
+          path: ${{ github.workspace }}/helm-charts/todoapp
+    
+      - name: Upload cluster config
+        if: github.ref_name == 'main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: cluster-config
+          path: ${{ github.workspace }}/cluster.yml
 
   docker-ci:
     name: Build and Push Image
@@ -118,3 +125,23 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-dev:
+    name: Deploy Helm
+    uses: ./.github/workflows/reusable-workflow.yml
+    needs: [helm-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+
+  deploy-helm-staging:
+    name: Deploy helm
+    uses: ./.github/workflows/reusable-workflow.yml
+    needs: deploy-helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      helm-release-name: todoapp-staging
+      helm-values-path: ./todoapp/values/stg.yaml
