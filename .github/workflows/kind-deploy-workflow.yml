@@ -1,0 +1,83 @@
+name: Kind Deploy Upgrade
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        description: 'Environment name (e.g., development, staging)'
+        type: string
+      version:
+        required: true
+        description: 'Docker image version to deploy (e.g., Git SHA)'
+        type: string
+      helm-release-name:
+        description: 'Name of the Helm release'
+        type: string
+        default: 'todoapp'
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  deploy-kind:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    name: Deploy to ${{ inputs.environment }}
+    env:
+      DockerImageName: todoapp
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download Helm Package
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-package
+          path: .
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Set up Kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Create Kind Cluster
+        uses: helm/kind-action@v1.9.0
+        with:
+          cluster_name: ${{ inputs.environment }}-cluster
+          config: ./cluster.yml
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Load Docker Image into Kind
+        run: |
+          IMAGE_TAG=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ inputs.version }}
+          docker pull $IMAGE_TAG
+          kind load docker-image $IMAGE_TAG --name ${{ inputs.environment }}-cluster
+
+      - name: Helm Install Dry Run
+        run: |
+          helm install ${{ inputs.helm-release-name }} ./*.tgz \
+          --namespace ${{ inputs.environment }} --create-namespace \
+          --set image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }} \
+          --set image.tag=${{ inputs.version }} \
+          --dry-run --debug
+
+      - name: Deploy/Upgrade Helm
+        run: |
+          helm upgrade --install ${{ inputs.helm-release-name }} ./*.tgz \
+          --namespace ${{ inputs.environment }} --create-namespace \
+          --set image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }} \
+          --set image.tag=${{ inputs.version }} \
+          --atomic --wait --timeout 300s
+
+      - name: Verify Deployment
+        run: kubectl get pods -n ${{ inputs.environment }}

@@ -11,6 +11,8 @@ on:
 env:
   PythonVersion: 3.8
   DockerImageName: todoapp
+  # ЗМІНА 1: Змінна HelmChartName залишається і буде використана
+  HelmChartName: todoapp
 
 jobs:
   python-ci:
@@ -61,7 +63,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: helm-artifacts
-          path: ${{ github.workspace }}/helm-charts
+          # КРИТИЧНЕ ВИПРАВЛЕННЯ 2: Шлях тепер вказує на сам чарт, а не на батьківську папку
+          path: ./helm-charts/${{ env.HelmChartName }}
 
   docker-ci:
     name: Build and Push Image
@@ -77,6 +80,7 @@ jobs:
         path: .
 
     - name: Login to Docker Hub
+      # ЗМІНА 3: Повернення до рекомендованого екшену docker/login-action
       uses: docker/login-action@v3
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -105,16 +109,39 @@ jobs:
       uses: azure/setup-helm@v4.2.0
 
     - name: Lint helm
-      run: helm lint ./todoapp/
+      # ЗМІНА 4: Використання змінної
+      run: helm lint ./${{ env.HelmChartName }}/
 
     - name: Template Helm
-      run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
+      # ЗМІНА 4: Використання змінної
+      run: helm template ${{ env.HelmChartName }} ./${{ env.HelmChartName }}/ -f ./${{ env.HelmChartName }}/values.yaml
 
     - name: Package Helm
-      run: helm package ./todoapp
+      # ЗМІНА 4: Використання змінної
+      run: helm package ./${{ env.HelmChartName }}
 
     - name: Upload Helm Artifact
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-dev:
+    name: Deploy to Development (Kind)
+    uses: ./.github/workflows/kind-deploy-workflow.yml
+    needs: [helm-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+      helm-release-name: todoapp-dev
+
+  deploy-staging:
+    name: Deploy to Staging (Kind)
+    uses: ./.github/workflows/kind-deploy-workflow.yml
+    needs: deploy-dev
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      helm-release-name: todoapp-staging
