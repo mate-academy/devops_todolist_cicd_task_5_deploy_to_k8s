@@ -118,3 +118,29 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+   deploy-helm-dev:
+      name: Deploy Helm
+      uses: ./.github/workflows/deployment-workflow.yml
+      needs: [ helm-ci, docker-ci ]
+      secrets: inherit
+      with:
+        environment: dev
+        version: ${{ github.sha }}
+
+
+   deploy-helm-staging:
+      name: Deploy Helm
+      uses: ./.github/workflows/deployment-workflow.yml
+      needs: deploy-helm-dev
+      secrets: inherit
+      with:
+        environment: staging
+        helm-values-path: ./kube2py/values/staging.yml
+        helm-release-name: kube2py-staging
+        version: ${{ github.sha }}
+  
+
+
+
+
