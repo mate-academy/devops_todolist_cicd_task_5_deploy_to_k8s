@@ -1,0 +1,77 @@
+name: Deploy to kind (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image_repo:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: cluster.yml
+          cluster_name: todo
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: "latest"
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: "latest"
+
+      - name: Helm lint
+        run: helm lint ./helm-charts/todoapp
+
+      - name: Helm install dry-run
+        run: |
+          helm upgrade --install todoapp ./helm-charts/todoapp \
+            --namespace todoapp --create-namespace \
+            --set todoapp.image.repository="${{ inputs.image_repo }}" \
+            --set todoapp.image.tag="${{ inputs.image_tag }}" \
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+            --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --dry-run --debug
+
+      - name: Helm upgrade --install (atomic)
+        run: |
+          helm upgrade --install todoapp ./helm-charts/todoapp \
+            --namespace todoapp --create-namespace \
+            --set todoapp.image.repository="${{ inputs.image_repo }}" \
+            --set todoapp.image.tag="${{ inputs.image_tag }}" \
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+            --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --atomic --wait --timeout 5m
+
+      - name: Show pods/services
+        run: |
+          kubectl get pods -A
+          kubectl get svc -A

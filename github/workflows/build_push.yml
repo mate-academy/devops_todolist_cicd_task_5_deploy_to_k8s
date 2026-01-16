@@ -1,0 +1,42 @@
+name: Build and Push Docker image
+
+on:
+  workflow_call:
+    outputs:
+      image_repo:
+        value: ${{ jobs.build_push.outputs.image_repo }}
+      image_tag:
+        value: ${{ jobs.build_push.outputs.image_tag }}
+
+jobs:
+  build_push:
+    runs-on: ubuntu-latest
+    outputs:
+      image_repo: ${{ steps.meta.outputs.image_repo }}
+      image_tag: ${{ steps.meta.outputs.image_tag }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set image meta
+        id: meta
+        run: |
+          echo "image_repo=${{ secrets.DOCKERHUB_USERNAME }}/todoapp" >> $GITHUB_OUTPUT
+          echo "image_tag=${GITHUB_SHA}" >> $GITHUB_OUTPUT
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push
+        uses: docker/build-push-action@v6
+        with:
+          context: ./src
+          file: ./src/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.image_tag }}
+            ${{ steps.meta.outputs.image_repo }}:latest
