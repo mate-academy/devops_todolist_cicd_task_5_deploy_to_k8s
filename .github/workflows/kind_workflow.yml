@@ -1,0 +1,87 @@
+name: Deploy Helm Chart to Kind Cluster
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      path-to-values:
+        default: helm-charts/todoapp/values.yaml
+        type: string
+
+jobs:
+  deploy-helm:
+    name: Deploy Helm Chart to Kind Cluster
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Download helm artifacts
+      uses: actions/download-artifact@v4
+      with:
+          name: helm-package
+          path: ./downloaded-package
+
+    - name: Set up Helm Cluster
+      uses: azure/setup-helm@v4.2.0
+
+    - name: Create Kind Cluster
+      uses: helm/kind-action@v1
+      with:
+        config: cluster.yml
+
+    - name: List files (Debug)
+      run: ls -R
+
+    - name: Dry Run
+      run: helm upgrade --install --dry-run=client todoapp ./downloaded-package/todoapp-*.tgz
+
+    - name: Deploy helm
+      run: |
+        helm upgrade --install --debug --atomic --wait --timeout 180s --set todoapp.image.tag=${{ inputs.version }} todoapp ./downloaded-package/todoapp-*.tgz \
+        -f ${{ inputs.path-to-values }} \
+        --set-string todoapp.secrets.SECRET_KEY="${{secrets.SECRET_KEY}}" \
+        --set-string todoapp.secrets.DB_NAME="${{secrets.DB_NAME}}" \
+        --set-string todoapp.secrets.DB_USER="${{secrets.DB_USER}}" \
+        --set-string todoapp.secrets.DB_PASSWORD="${{secrets.DB_PASSWORD}}" \
+        --set-string todoapp.secrets.DB_HOST="${{secrets.DB_HOST}}" \
+        --set-string mysql.secrets.MYSQL_ROOT_PASSWORD="${{secrets.MYSQL_ROOT_PASSWORD}}" \
+        --set-string mysql.secrets.MYSQL_USER="${{secrets.MYSQL_USER}}" \
+        --set-string mysql.secrets.MYSQL_PASSWORD="${{secrets.MYSQL_PASSWORD}}"
+
+
+    - name: Debug Kubernetes Resources
+      if: always()
+      run: |
+        kubectl get pods -A
+        kubectl describe pod -l app.kubernetes.io/name=todoapp --namespace todoapp
+        kubectl logs -l app.kubernetes.io/name=todoapp --namespace todoapp --all-containers
+        kubectl -n todoapp describe pods
+        kubectl -n todoapp get pods --show-labels
+        kubectl -n todoapp describe pods
+        kubectl -n todoapp logs -l app.kubernetes.io/instance=todoapp --all-containers --previous
+        kubectl get pods -n todoapp
+        kubectl -n todoapp logs -l app=todoapp --all-containers --previous
+        helm show values ./downloaded-package/todoapp-*.tgz | head -n 200
+        if [ -z "${{ secrets.DB_HOST }}" ]; then echo "DB_HOST is EMPTY"; else echo "DB_HOST exists"; fi
+        kubectl -n todoapp get secret todoapp-secret -o jsonpath="{.data.DB_HOST}" | base64 -d; echo
+        echo "Rendered values:"
+        helm get values todoapp -n todoapp -a || true
+
+        echo "Todoapp secret decoded:"
+        kubectl -n todoapp get secret todoapp-secret -o jsonpath='{.data.DB_USER}' | base64 -d; echo
+        kubectl -n todoapp get secret todoapp-secret -o jsonpath='{.data.DB_PASSWORD}' | base64 -d; echo
+        kubectl -n todoapp get secret todoapp-secret -o jsonpath='{.data.DB_NAME}' | base64 -d; echo
+        kubectl -n todoapp get secret todoapp-secret -o jsonpath='{.data.DB_HOST}' | base64 -d; echo
+
+        echo "MySQL service:"
+        kubectl -n mysql get svc
+
+

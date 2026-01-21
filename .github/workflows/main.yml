@@ -105,16 +105,36 @@ jobs:
       uses: azure/setup-helm@v4.2.0
 
     - name: Lint helm
-      run: helm lint ./todoapp/
+      run: helm lint ./helm-charts/todoapp/
 
     - name: Template Helm
-      run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
+      run: helm template todoapp ./helm-charts/todoapp/ -f ./helm-charts/todoapp/values.yaml
 
     - name: Package Helm
-      run: helm package ./todoapp
+      run: helm package ./helm-charts/todoapp/
 
     - name: Upload Helm Artifact
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-development:
+    name: Deploy Dev
+    uses: ./.github/workflows/kind_workflow.yml
+    needs: [helm-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+      path-to-values: ./helm-charts/todoapp/values.yaml
+
+  deploy-staging:
+    name: Deploy Staging
+    uses: ./.github/workflows/kind_workflow.yml
+    needs: deploy-development
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      path-to-values: ./helm-charts/todoapp/values/stg.yaml
