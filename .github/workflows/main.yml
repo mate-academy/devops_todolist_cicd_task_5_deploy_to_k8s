@@ -118,3 +118,23 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-development:
+    name: Deploy
+    uses: ./.github/workflows/deploy.yml
+    needs: helm-ci
+    with:
+      environment: production
+      version: ${{ github.sha }}
+      path-to-values: helm-charts/todoapp/values.yaml
+
+  deploy-helm-staging:
+    name: Deploy Staging
+    uses: ./.github/workflows/deploy.yml
+    needs: deploy-development
+    if: github.ref_name == 'main'
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      path-to-values: helm-charts/todoapp/values/stg.yaml
+

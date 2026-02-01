@@ -1,0 +1,73 @@
+name: Deploy Helm Chart
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      path-to-values:
+        default: helm-charts/todoapp/values.yaml
+        type: string
+
+jobs:
+    deploy-helm:
+        name: Deploy Helm
+        runs-on: ubuntu-latest
+        environment: ${{ inputs.environment }}
+
+        steps:
+        - name: Check Code
+          uses: actions/checkout@v4
+
+        - name: download helm package
+          uses: actions/download-artifact@v4
+          with:
+            name: helm-package
+            path: .
+
+        - name: Set Up Helm Cluster
+          uses: azure/setup-helm@v4.2.0
+
+        - name: Create Kind Cluster
+          uses: helm/kind-action@v1
+          with:
+            config: cluster.yaml
+
+        - name: Helm Dry Run
+          run: |
+            helm upgrade --install todoapp ./todoapp-${{ inputs.version }}*.tgz \
+            --dry-run \
+            --debug \
+            --timeout 3600s \
+            --set image.tag=${{ inputs.version }} \
+            -f ${{ inputs.path-to-values }} \
+            --set todoapp.values.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.values.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+            --set todoapp.values.secrets.DB_USER="${{ secrets.DB_USER }}" \
+            --set todoapp.values.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --set todoapp.values.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+            --set todoapp.values.mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set todoapp.values.mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --set todoapp.values.mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}"
+
+        - name: Helm Deploy
+          run: |
+            helm upgrade --install todoapp ./todoapp-${{ inputs.version }}*.tgz \
+            --atomic \
+            --wait \
+            --timeout 3600s \
+            --debug \
+            --set image.tag=${{ inputs.version }} \
+            -f ${{ inputs.path-to-values }} \
+            --set todoapp.values.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.values.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+            --set todoapp.values.secrets.DB_USER="${{ secrets.DB_USER }}" \
+            --set todoapp.values.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --set todoapp.values.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+            --set todoapp.values.mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set todoapp.values.mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --set todoapp.values.mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}"
