@@ -1,120 +1,133 @@
-name: python-deployment
+name: Django CI
 
-run-name: ${{ github.actor }} - ${{ github.ref_name}} -${{ github.sha }}
+run-name: Run by ${{ github.actor }} on commit ${{ github.sha }}
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - d4vp4
   pull_request:
-    branches: ["main"]
+    branches:
+      - d4vp4
 
 env:
-  PythonVersion: 3.8
-  DockerImageName: todoapp
+  PYTHON_VERSION: '3.10'
+  DOCKER_IMAGE_NAME: 'd4vp4/todo-app'
 
 jobs:
   python-ci:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./src
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ env.PythonVersion }}
-        uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PythonVersion }}
+          python-version: ${{ env.PYTHON_VERSION }}
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install -r src/requirements.txt
           pip install coverage flake8
-          pip install -r requirements.txt
 
-      - name: Run tests
+      - name: Run Tests and Generate Coverage
         run: |
-          python manage.py test
-
-      - name: Generate Report
-        run: |
-          coverage run --source='.' manage.py test
+          cd src
+          coverage run manage.py test
           coverage report
 
-      - name: Linting
-        run: |
-          flake8 . --show-source --statistics --exit-zero
+      - name: Check Code Style
+        continue-on-error: true
+        run: flake8 src
 
       - name: Check Complexity
-        run: |
-          flake8 . --exit-zero --max-complexity=6
+        continue-on-error: true
+        run: flake8 src --max-complexity=10 --exit-zero
 
-      - name: Upload python artifacts
+      - name: Upload Codebase
         uses: actions/upload-artifact@v4
         with:
-          name: python-artifacts
+          name: codebase
           path: .
-
-      - name: Upload helm artifacts
-        if: github.ref_name == 'main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: helm-artifacts
-          path: ${{ github.workspace }}/helm-charts
+          include-hidden-files: true
 
   docker-ci:
-    name: Build and Push Image
     runs-on: ubuntu-latest
-    if: ${{ github.ref_name == 'main' }}
     needs: python-ci
+    if: github.ref == 'refs/heads/d4vp4'
+
+    environment: development
+
     steps:
+      - name: Download Codebase
+        uses: actions/download-artifact@v4
+        with:
+          name: codebase
+          path: .
 
-    - uses: actions/download-artifact@v4
-      name: Download python artifacts
-      with:
-        name: python-artifacts
-        path: .
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v3
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-    - name: Build and push
-      uses: docker/build-push-action@v5
-      with:
-        push: true
-        context: ./src
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./src/Dockerfile
+          push: true
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }},${{ env.DOCKER_IMAGE_NAME }}:latest
 
   helm-ci:
     runs-on: ubuntu-latest
     needs: python-ci
-    if: github.ref_name == 'main'
-    name: Helm CI
+    if: github.ref == 'refs/heads/d4vp4'
+
     steps:
+      - name: Download Codebase
+        uses: actions/download-artifact@v4
+        with:
+          name: codebase
+          path: .
 
-    - uses: actions/download-artifact@v4
-      with:
-        name: helm-artifacts
-        path: .
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.12.0
 
-    - name: Set Up Helm
-      uses: azure/setup-helm@v4.2.0
+      - name: Helm Template
+        run: helm template ./helm-charts/todoapp
 
-    - name: Lint helm
-      run: helm lint ./todoapp/
+      - name: Helm Lint
+        run: helm lint ./helm-charts/todoapp
 
-    - name: Template Helm
-      run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
+      - name: Helm Package
+        run: helm package ./helm-charts/todoapp
 
-    - name: Package Helm
-      run: helm package ./todoapp
+      - name: Upload Helm Chart
+        uses: actions/upload-artifact@v4
+        with:
+          name: helm-package
+          path: "*.tgz"
 
-    - name: Upload Helm Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: helm-package
-        path: ./*.tgz
+  deploy-development:
+    needs: [docker-ci, helm-ci]
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: development
+      image_tag: ${{ github.sha }}
+      docker_image_name: ${{ env.DOCKER_IMAGE_NAME }}
+
+  deploy-staging:
+    needs: deploy-development
+    uses: ./.github/workflows/reusable-deploy.yml
+    with:
+      environment: staging
+      image_tag: ${{ github.sha }}
+      docker_image_name: ${{ env.DOCKER_IMAGE_NAME }}
