@@ -1,5 +1,5 @@
 todoapp:
-  namespace: placeholder
+  namespace: todoapp-staging
   image:
     repository: placeholder
 

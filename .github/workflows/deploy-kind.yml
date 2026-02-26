@@ -70,12 +70,12 @@ jobs:
         run: |
            helm upgrade --install --atomic  --wait --timeout 3600s --debug ${{ inputs.helm-release-name }} ./todoapp-*.tgz  \
              -f ${{ inputs.helm-values-path }} \
-             --set mysql.configs.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
-             --set mysql.configs.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
-             --set mysql.configs.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+             --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+             --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+             --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
              --set todoapp.secrets.password="${{ secrets.PASSWORD }}" \
              --set todoapp.secrets.login="${{ secrets.LOGIN }}" \
              --set todoapp.secrets.DB_CONNECTION="${{ secrets.DB_CONNECTION }}" \
              --set global.environment="${{ vars.ENV_NAME }}" \
-             --set todoapp.image.version="${{ github.sha }}" 
+             --set todoapp.image.version="${{ inputs.version }}" 
 
