@@ -1,0 +1,81 @@
+name: helm-upgrade
+
+run-name: ${{ github.actor }} - ${{ github.ref_name }}
+
+on:
+ workflow_call:
+   inputs:
+     environment:
+       required: true
+       description: 'Environment to deploy to'
+       type: string
+     version:
+       required: true
+       description: 'Version of the image to deploy'
+       type: string
+     helm-values-path:
+       description: 'Path to the helm values file'
+       type: string
+       default: './todoapp/values.yaml'
+     helm-release-name:
+         description: 'Name of the helm release'
+         type: string
+         default: 'todoapp'
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy Helm to ${{ inputs.environment }}
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: .
+          name: helm-package
+
+      - uses: actions/download-artifact@v4
+        name: Download helm artifacts
+        with:
+          name: helm-artifacts
+          path: .
+
+      - name: Create kind cluster
+        run: |
+          curl -Lo kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+          chmod +x kind
+          sudo mv kind /usr/local/bin/kind
+          kind create cluster --config ./cluster.yml --wait 600s
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+
+      - name: Deploy Helm to Environment with --dry-run
+        run: |
+          helm upgrade --install --debug ${{ inputs.helm-release-name }} ./todoapp-*.tgz  \
+            -f ${{ inputs.helm-values-path }} \
+            --dry-run --debug \
+            --set mysql.configs.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set mysql.configs.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+            --set mysql.configs.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --set todoapp.secrets.password="${{ secrets.PASSWORD }}" \
+            --set todoapp.secrets.login="${{ secrets.LOGIN }}" \
+            --set todoapp.secrets.DB_CONNECTION="${{ secrets.DB_CONNECTION }}" \
+            --set global.environment="${{ vars.ENV_NAME }}" \
+            --set todoapp.image.version="${{ github.sha }}" 
+
+      - name: Deploy Helm to Environment
+        run: |
+           helm upgrade --install --atomic  --wait --timeout 3600s --debug ${{ inputs.helm-release-name }} ./todoapp-*.tgz  \
+             -f ${{ inputs.helm-values-path }} \
+             --set mysql.configs.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+             --set mysql.configs.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+             --set mysql.configs.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+             --set todoapp.secrets.password="${{ secrets.PASSWORD }}" \
+             --set todoapp.secrets.login="${{ secrets.LOGIN }}" \
+             --set todoapp.secrets.DB_CONNECTION="${{ secrets.DB_CONNECTION }}" \
+             --set global.environment="${{ vars.ENV_NAME }}" \
+             --set todoapp.image.version="${{ github.sha }}" 
+

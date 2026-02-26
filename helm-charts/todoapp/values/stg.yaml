@@ -1,7 +1,7 @@
 todoapp:
-  namespace: todoapp
+  namespace: placeholder
   image:
-    repository: ikulyk404/todoapp
+    repository: placeholder
 
   resources:
     requests:
