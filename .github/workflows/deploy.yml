@@ -1,0 +1,86 @@
+name: reusable-kind-deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment_name:
+        required: true
+        type: string
+      namespace:
+        required: true
+        type: string
+      values_file:
+        required: true
+        type: string
+      image_name:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment_name }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment_name }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.12.0
+        with:
+          cluster_name: todoapp-${{ inputs.environment_name }}
+          config: ./cluster.yml
+
+      - name: Check cluster
+        run: kubectl cluster-info
+
+      - name: Helm install dry-run
+        run: >
+          helm install todoapp ./helm-charts/todoapp
+          --namespace "${{ inputs.namespace }}"
+          --create-namespace
+          -f ./helm-charts/todoapp/values.yaml
+          -f ./"${{ inputs.values_file }}"
+          --set-string todoapp.namespace="${{ inputs.namespace }}"
+          --set-string todoapp.image.repository="${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}"
+          --set-string todoapp.image.tag="${{ inputs.image_tag }}"
+          --set-string todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}"
+          --set-string todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}"
+          --set-string todoapp.secrets.DB_USER="${{ secrets.DB_USER }}"
+          --set-string todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+          --set-string todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}"
+          --set-string mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}"
+          --set-string mysql.secrets.MYSQL_USER="${{ secrets.DB_USER }}"
+          --set-string mysql.secrets.MYSQL_PASSWORD="${{ secrets.DB_PASSWORD }}"
+          --dry-run
+          --debug
+
+      - name: Helm upgrade and install
+        run: >
+          helm upgrade --install todoapp ./helm-charts/todoapp
+          --namespace "${{ inputs.namespace }}"
+          --create-namespace
+          -f ./helm-charts/todoapp/values.yaml
+          -f ./"${{ inputs.values_file }}"
+          --set-string todoapp.namespace="${{ inputs.namespace }}"
+          --set-string todoapp.image.repository="${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.image_name }}"
+          --set-string todoapp.image.tag="${{ inputs.image_tag }}"
+          --set-string todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}"
+          --set-string todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}"
+          --set-string todoapp.secrets.DB_USER="${{ secrets.DB_USER }}"
+          --set-string todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+          --set-string todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}"
+          --set-string mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}"
+          --set-string mysql.secrets.MYSQL_USER="${{ secrets.DB_USER }}"
+          --set-string mysql.secrets.MYSQL_PASSWORD="${{ secrets.DB_PASSWORD }}"
+          --atomic
+          --wait
