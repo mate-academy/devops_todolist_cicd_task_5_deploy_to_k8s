@@ -61,7 +61,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: helm-artifacts
-          path: ${{ github.workspace }}/helm-charts
+          path: |
+            ${{ github.workspace }}/helm-charts/*
+            ${{ github.workspace }}/cluster.yml
+
 
   docker-ci:
     name: Build and Push Image
@@ -105,16 +108,39 @@ jobs:
       uses: azure/setup-helm@v4.2.0
 
     - name: Lint helm
-      run: helm lint ./todoapp/
+      run: helm lint ./helm-charts/todoapp/
 
     - name: Template Helm
-      run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
+      run: helm template todoapp ./helm-charts/todoapp/ -f ./helm-charts/todoapp/values.yaml
 
     - name: Package Helm
-      run: helm package ./todoapp
+      run: helm package ./helm-charts/todoapp
 
     - name: Upload Helm Artifact
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-dev:
+    name: Deploy Helm to Dev
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: [docker-ci, helm-ci]
+    secrets: inherit
+    with:
+      environment: development
+      helm-values-path: './helm-charts/todoapp/values.yaml'
+      helm-release-name: todoapp-dev
+      image-tag: ${{ github.sha }}
+
+
+  deploy-helm-staging:
+    name: Deploy Helm to Staging
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: deploy-helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      helm-values-path: './helm-charts/todoapp/values/stg.yaml'
+      helm-release-name: todoapp-staging
+      image-tag: ${{ github.sha }}
