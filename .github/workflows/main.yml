@@ -147,6 +147,7 @@ jobs:
 
     secrets: inherit
     needs:
-      - deploy-helm-dev
+      - docker-ci
+      - helm-ci
     with:
-      environment: development
+      environment: staging
