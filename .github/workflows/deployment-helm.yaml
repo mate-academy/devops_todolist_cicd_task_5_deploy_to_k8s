@@ -12,7 +12,8 @@ on:
         type: string
         default: todoapp
 
-
+env:
+  APP_NAME: todoapp
 
 
 jobs:
@@ -54,6 +55,6 @@ jobs:
           todoapp-${{inputs.environment}} ./*todoapp*.tgz \
           --set todoapp.namespace=todoapp-${{inputs.environment}} \
           --set mysql.namespace=mysql-${{inputs.environment}} \
-          --set todoapp.image.repository=${{secrets.DOCKERHUB_USERNAME}}/${{vars.APP_NAME}} \ # vars.APP_NAME declarated in github actions environment variables
+          --set todoapp.image.repository=${{secrets.DOCKERHUB_USERNAME}}/${{env.APP_NAME}} \ # vars.APP_NAME declarated in github actions environment variables
           --set todoapp.image.tag=${{github.sha}} \
           --set todoapp.secrets.SECRET_KEY=${{secrets.SECRET_KEY}}
