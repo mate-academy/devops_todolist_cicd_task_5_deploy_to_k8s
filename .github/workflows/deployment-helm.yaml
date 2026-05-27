@@ -19,7 +19,7 @@ jobs:
   deploy-helm:
     runs-on: ubuntu-latest
 
-    name: Deploy helm chart into ${{inputs.environment}} environtent
+    name: Deploy into ${{inputs.environment}}
 
     environment: ${{inputs.environment}}
 
@@ -30,7 +30,7 @@ jobs:
           name: helm-package
           path: .
 
-      - name: downlaod kind config
+      - name: download kind config
         uses: actions/download-artifact@v4
         with:
           name: cluster-config
@@ -48,7 +48,7 @@ jobs:
         with:
           config: cluster.yml
 
-      - name: Deploy todoapp Chart into ${{inputs.environment}}
+      - name: Deploy
         run: |
           helm upgrade --install --atomic --wait --timeout 3600s --debug \
           todoapp-${{inputs.environment}} ./*todoapp*.tgz \

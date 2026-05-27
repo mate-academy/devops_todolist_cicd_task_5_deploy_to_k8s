@@ -128,7 +128,7 @@ jobs:
 
 
   deploy-helm-dev:
-    name: Deploying Helm Chart to dev environment
+    name: Deploying to development
 
     uses: ./.github/workflows/deployment-helm.yaml
 
@@ -141,7 +141,7 @@ jobs:
 
 
   deploy-helm-staging:
-    name: Deploying Helm Chart to dev environment
+    name: Deploying to staging
 
     uses: ./.github/workflows/deployment-helm.yaml
 
