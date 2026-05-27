@@ -1,0 +1,60 @@
+name: Deploying Helm
+run-name: "${{github.action}} - ${{github.ref_name}} : ${{github.sha}}"
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      dockerHubImage:
+        required: false
+        type: string
+        default: todoapp
+
+env:
+  APP_NAME: todoapp
+
+
+jobs:
+  deploy-helm:
+    runs-on: ubuntu-latest
+
+    name: Deploy into ${{inputs.environment}}
+
+    environment: ${{inputs.environment}}
+
+    steps:
+      - name: Download Helm Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-package
+          path: .
+
+      - name: download kind config
+        uses: actions/download-artifact@v4
+        with:
+          name: cluster-config
+          path: .
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Spin up kind cluster
+        uses: helm/kind-action@v1
+        with:
+          config: cluster.yml
+
+      - name: Dry run Helm Artifact
+        run: |
+          helm install ./todoapp-0.1.0.tgz --dry-run=client --generate-name
+
+      - name: Deploy
+        run: |
+          helm upgrade --install --atomic --wait --timeout 3600s --debug \
+          todoapp-${{inputs.environment}} ./*todoapp*.tgz \
+          --set todoapp.namespace=todoapp-${{inputs.environment}} \
+          --set mysql.namespace=mysql-${{inputs.environment}} \
+          --set todoapp.image.repository=${{secrets.DOCKERHUB_USERNAME}}/${{env.APP_NAME}} \ # vars.APP_NAME declarated in github actions environment variables
+          --set todoapp.image.tag=${{github.sha}} \
+          --set todoapp.secrets.SECRET_KEY=${{secrets.SECRET_KEY}}
