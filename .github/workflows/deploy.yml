@@ -1,0 +1,54 @@
+name: Deploy to kind Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Download helm artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-artifacts
+          path: helm-charts/
+
+      - name: Download helm package
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-package
+          path: helm-package/
+
+      - name: Set Up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: helm-charts/cluster.yml
+
+      - name: Helm dry-run
+        run: |
+          helm install todoapp helm-charts/todoapp \
+            --namespace todoapp \
+            --create-namespace \
+            --dry-run
+
+      - name: Helm upgrade --install
+        run: |
+          helm upgrade --install todoapp helm-charts/todoapp \
+            --namespace todoapp \
+            --create-namespace \
+            --atomic \
+            --wait \
+            --timeout 3m

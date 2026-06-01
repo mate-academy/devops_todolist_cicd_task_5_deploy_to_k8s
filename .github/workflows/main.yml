@@ -61,7 +61,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: helm-artifacts
-          path: ${{ github.workspace }}/helm-charts
+          path: |
+            ${{ github.workspace }}/helm-charts
+            ${{ github.workspace }}/cluster.yml
 
   docker-ci:
     name: Build and Push Image
@@ -118,3 +120,23 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-development:
+    name: Deploy to Development
+    needs: [docker-ci, helm-ci]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: deploy-development
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
