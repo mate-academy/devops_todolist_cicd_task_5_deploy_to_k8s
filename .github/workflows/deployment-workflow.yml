@@ -27,6 +27,11 @@ jobs:
       steps:
       - uses: actions/download-artifact@v4
         with:
+          name: python-artifacts
+          path: .
+          
+      - uses: actions/download-artifact@v4
+        with:
           name: helm-package
           path: .
       
@@ -36,9 +41,9 @@ jobs:
           path: .
       
       - name: Install kind cluster
-        uses: helm/kind-action@v1.2.0
+        uses: helm/kind-action@v1.14.0
         with:
-          config: ./cluster.yml
+          config: cluster.yml
 
       - name: Set Up Helm
         uses: azure/setup-helm@v4.2.0
