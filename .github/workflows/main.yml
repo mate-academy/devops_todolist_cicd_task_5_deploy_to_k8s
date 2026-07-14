@@ -118,7 +118,6 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
-
   deploy-to-dev:
     if: github.ref == "refs/heads/your_name"
     needs: helm-ci
