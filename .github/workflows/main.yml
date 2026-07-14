@@ -1,6 +1,6 @@
 name: python-deployment
 
-run-name: ${{ github.actor }} - ${{ github.ref_name}} -${{ github.sha }}
+run-name: ${{ github.actor }} - ${{ github.ref_name}} - ${{ github.sha }}
 
 on:
   push:
@@ -120,7 +120,7 @@ jobs:
         path: ./*.tgz
 
   deploy-to-dev:
-    if: github.ref == "refs/heads/your_name"
+    if: github.ref == 'refs/heads/your_name'
     needs: helm-ci
     uses: ./.github/workflows/deploy.yml
     with:
@@ -130,7 +130,7 @@ jobs:
       DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
 
   deploy-to-staging:
-    if: github.ref == "refs/heads/your_name"
+    if: github.ref == 'refs/heads/your_name'
     needs: helm-ci
     uses: ./.github/workflows/deploy.yml
     with:
