@@ -38,12 +38,15 @@ jobs:
           kubectl cluster-info
           kubectl get pods
 
+      - name: Set Up Helm
+        uses: azure/setup-helm@v4.2.0
+
       - name: Helm install (Dry Run)
         run: |
-          helm install my-app ./charts --dry-run --debug
+          helm install my-app ./todoapp --dry-run --debug
 
       - name: Helm Upgrade
         run: |
-          helm upgrade --install my-app ./charts \
+          helm upgrade --install my-app ./todoapp \
             --atomic \
             --timeout 5m0s
