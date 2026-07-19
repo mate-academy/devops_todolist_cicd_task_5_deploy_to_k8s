@@ -95,26 +95,44 @@ jobs:
     if: github.ref_name == 'main'
     name: Helm CI
     steps:
-
-    - uses: actions/download-artifact@v4
-      with:
-        name: helm-artifacts
-        path: .
+    - uses: actions/checkout@v4
 
     - name: Set Up Helm
       uses: azure/setup-helm@v4.2.0
 
     - name: Lint helm
-      run: helm lint ./todoapp/
+      run: helm lint ./helm-charts/todoapp/
 
     - name: Template Helm
-      run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
+      run: helm template todoapp ./helm-charts/todoapp/ -f ./helm-charts/todoapp/values.yaml
 
     - name: Package Helm
-      run: helm package ./todoapp
+      run: helm package ./helm-charts/todoapp
 
     - name: Upload Helm Artifact
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
-        path: ./*.tgz
+        path: |
+          ./*.tgz
+          ./cluster.yml
+
+  deploy-helm-dev:
+    name: Deploy Helm to Dev
+    needs: ["docker-ci", "helm-ci"]
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+
+  deploy-helm-staging:
+    name: Deploy Helm to Staging
+    needs: deploy-helm-dev
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-stg

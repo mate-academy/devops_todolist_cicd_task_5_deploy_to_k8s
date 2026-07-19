@@ -7,7 +7,7 @@ mysql:
 todoapp:
   namespace: todoapp
   image:
-    repository: ikulyk404/todoapp
+    repository: olegglv/todoapp
     tag: "4.0.1"
 
   resources:
@@ -17,6 +17,9 @@ todoapp:
     limits:
       memory: "256Mi"
       cpu: "150m"
+
+  nodeport:
+    port: 30007
 
   secrets:
     SECRET_KEY: zdfsadfsadfsfs
