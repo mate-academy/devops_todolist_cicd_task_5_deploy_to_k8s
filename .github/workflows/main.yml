@@ -89,32 +89,18 @@ jobs:
         context: ./src
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
 
-  helm-ci:
-    runs-on: ubuntu-latest
-    needs: python-ci
-    if: github.ref_name == 'main'
-    name: Helm CI
-    steps:
+  deploy-development:
+    needs: docker-ci
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
 
-    - uses: actions/download-artifact@v4
-      with:
-        name: helm-artifacts
-        path: .
-
-    - name: Set Up Helm
-      uses: azure/setup-helm@v4.2.0
-
-    - name: Lint helm
-      run: helm lint ./todoapp/
-
-    - name: Template Helm
-      run: helm template todoapp ./todoapp/ -f ./todoapp/values.yaml
-
-    - name: Package Helm
-      run: helm package ./todoapp
-
-    - name: Upload Helm Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: helm-package
-        path: ./*.tgz
+  deploy-staging:
+    needs: deploy-development
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
