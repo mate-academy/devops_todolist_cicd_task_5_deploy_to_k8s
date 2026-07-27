@@ -10,7 +10,7 @@ on:
 
 env:
   PythonVersion: 3.8
-  DockerImageName: todoapp
+  DockerImageName: matetask5
 
 jobs:
   python-ci:
@@ -118,3 +118,23 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-development:
+    name: Deploy to development
+    needs: docker-ci
+    if: github.ref_name == 'main'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+      docker-image-name: matetask5
+    secrets: inherit
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: docker-ci
+    if: github.ref_name == 'main'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      docker-image-name: matetask5
+    secrets: inherit
