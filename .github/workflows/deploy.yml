@@ -1,0 +1,55 @@
+name: Reusable Deploy to Kind
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      image_name:
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create k8s Kind Cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: cluster.yml
+
+      - name: Download Helm chart
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-package
+          path: .
+
+      - name: Set Up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Helm Deploy (Dry Run)
+        run: |
+          # Ищем скачанный архив .tgz
+          CHART_PACKAGE=$(ls *.tgz)
+          helm install todoapp-release $CHART_PACKAGE \
+            --dry-run \
+            --set image.repository=${{ inputs.image_name }} \
+            --set image.tag=${{ inputs.image_tag }}
+
+      - name: Helm Upgrade/Install
+        run: |
+          CHART_PACKAGE=$(ls *.tgz)
+          helm upgrade --install todoapp-release $CHART_PACKAGE \
+            --atomic \
+            --timeout 3m \
+            --set image.repository=${{ inputs.image_name }} \
+            --set image.tag=${{ inputs.image_tag }}
