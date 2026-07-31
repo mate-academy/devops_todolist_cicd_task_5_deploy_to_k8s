@@ -1,0 +1,52 @@
+name: Deploy to KinD Cluster
+
+on:
+    workflow_call:
+        inputs:
+            environment:
+                required: true
+                description: 'Environment to delploy to'
+                type: string
+            tag:
+                required: true
+                type: string
+
+jobs:
+  kind-deploy:
+      runs-on: ubuntu-latest
+      environment: ${{ inputs.environment }}
+      name: Helm CI
+      steps:
+
+          - name: Checkout
+            uses: actions/checkout@v4
+
+          - uses: actions/download-artifact@v4
+            with:
+              name: helm-artifacts
+              path: .
+
+          - name: Spin up kind
+            run: kind create cluster --config cluster.yml
+
+          - name: Set Up Helm
+            uses: azure/setup-helm@v4.2.0
+
+          - name: Helm Install
+            run: helm install --dry-run ./helm-charts/todoapp
+
+          - name: Deploy with Helm
+            run: |
+              helm upgrade --install todoapp ./helm-charts/todoapp --atomic -f ./helm-charts/todoapp/values.yaml \
+                --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+                --set mysql.secrets.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+                --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+                --set mysql.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+                --set mysql.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+                --set mysql.secrets.DB_USER="${{ secrets.DB_USER }}" \
+                --set mysql.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+                --set mysql.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+                --set mysql.image.tag="${{ inputs.tag }}"
+
+
+
