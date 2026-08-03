@@ -121,7 +121,7 @@ jobs:
 
   deploy-helm-dev:
     name: Deploy helm
-    uses: ./.github/workflows/helm-deploy.yml
+    uses: ./.github/workflows/deployment-workflow.yml
     needs: [helm-ci, docker-ci]
     secrets: inherit
     with:
@@ -130,7 +130,7 @@ jobs:
 
   deploy-helm-staging:
     name: Deploy helm
-    uses: ./.github/workflows/helm-deploy.yml
+    uses: ./.github/workflows/deployment-workflow.yml
     needs: deploy-helm-dev
     secrets: inherit
     with:

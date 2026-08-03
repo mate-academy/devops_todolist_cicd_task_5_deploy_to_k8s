@@ -43,14 +43,11 @@ jobs:
         - name: Set up Kubectl
           uses: azure/setup-kubectl@v4.2.0
 
-        - uses: azure/login@v2
-          with:
-            creds: ${{ secrets.AZURE_CREDENTIALS }}
+        - name: Create kind cluster
+          uses: helm/kind-action@v1.10.0
 
-        - uses: azure/aks-set-context@v3
-          with:
-            cluster-name: ${{ vars.AZURE_CLUSTER_NAME }}
-            resource-group: ${{ vars.AZURE_RESOURCE_GROUP }}
+        - name: Helm install
+          run: helm install --dry-run
 
         - name: Deploy Helm to Development
           run: |
