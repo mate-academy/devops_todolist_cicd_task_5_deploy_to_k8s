@@ -49,6 +49,7 @@ jobs:
         --set todoapp.secrets.DB_HOST="${{secrets.DB_HOST}}" \
         --set todoapp.image.tag="${{ inputs.version }}"
 
+
     - name: Helm Upgrade
       run: |
         helm upgrade --install todoapp ./helm-charts/todoapp --atomic --wait --timeout 5m -f ./helm-charts/todoapp/values.yaml \
