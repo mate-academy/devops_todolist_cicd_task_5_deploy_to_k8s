@@ -51,7 +51,7 @@ jobs:
 
     - name: Helm Upgrade
       run: |
-        helm upgrade --install todoapp ./helm-charts/todoapp --atomic --wait --timeout 10m -f ./helm-charts/todoapp/values.yaml \
+        helm upgrade --install todoapp ./helm-charts/todoapp --atomic --wait --timeout 5m -f ./helm-charts/todoapp/values.yaml \
         --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{secrets.MYSQL_ROOT_PASSWORD}}" \
         --set mysql.secrets.MYSQL_USER="${{secrets.MYSQL_USER}}" \
         --set mysql.secrets.MYSQL_PASSWORD="${{secrets.MYSQL_PASSWORD}}" \
