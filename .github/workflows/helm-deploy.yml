@@ -28,7 +28,7 @@ jobs:
       uses: actions/download-artifact@v4
       with:
        name: helm-artifacts
-       path: ./helm-charts
+       path: .
 
     - name: Create Cluster
       id: kind
