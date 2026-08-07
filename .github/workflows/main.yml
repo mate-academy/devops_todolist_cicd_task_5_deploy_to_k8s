@@ -10,7 +10,7 @@ on:
 
 env:
   PythonVersion: 3.8
-  DockerImageName: todoapp
+  DockerImageName: eug696-todoapp
 
 jobs:
   python-ci:
