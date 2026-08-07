@@ -12,7 +12,6 @@ on:
         required: true
         description: 'Version of the image to deploy'
         type: string
-    secrets: inherit
 
 
 
