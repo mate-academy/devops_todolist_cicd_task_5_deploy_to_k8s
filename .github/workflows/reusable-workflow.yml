@@ -1,0 +1,47 @@
+name: helm-upgrade
+run-name: ${{ github.actor }}-${{ github.sha }}
+
+on:
+    workflow_call:
+        inputs:
+            environment:
+                required: true
+                type: string
+            version:
+                required: true
+                type: string
+            helm_values_path:
+                type: string
+                default: "./todoapp/values.yml"
+            helm-release-name:
+                type: string
+                default: "todoapp"
+
+jobs:
+    deploy-helm:
+        name: ${{ inputs.environment }}
+        runs-on: ubuntu-latest
+        environment: ${{ inputs.environment }}
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - name: Set up Kubectl
+              uses: azure/setup-kubectl@v4
+
+            - name: Create k8s Kind Cluster
+              uses: helm/kind-action@v1
+              with:
+                config: ${{ github.workspace }}/cluster.yml
+
+            - uses: actions/download-artifact@v4
+              with:
+                  name: helm-package
+                  path: .
+
+            - name: Set up helm
+              uses: azure/setup-helm@v4.2.0
+
+            - name: Helm dry run
+              run: helm install ${{ inputs.helm-release-name }} ${{ github.workspace }}/*.tgz --dry-run
+
