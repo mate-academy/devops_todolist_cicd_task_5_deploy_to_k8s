@@ -47,7 +47,7 @@ jobs:
 
             - name: Helm upgrade
               run: |
-                helm upgrade --install --atomic ${{ inputs.helm-release-name }} ${{ github.workspace }}/*.tgz \
+                helm upgrade --install --atomic --wait --debug --timeout 5m ${{ inputs.helm-release-name }} ${{ github.workspace }}/*.tgz \
                 -f ${{ inputs.helm_values_path }} \
                 --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
                 --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
