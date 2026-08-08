@@ -43,11 +43,22 @@ jobs:
               uses: azure/setup-helm@v4.2.0
 
             - name: Helm dry run
-              run: helm install ${{ inputs.helm-release-name }} ${{ github.workspace }}/*.tgz --dry-run -f ${{ inputs.helm_values_path }}
+              run: |
+                helm install ${{ inputs.helm-release-name }} ${{ github.workspace }}/*.tgz --dry-run \
+                -f ${{ inputs.helm_values_path }} \
+                --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
+                --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
+                --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }} \
+                --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
+                --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
+                --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} \
+                --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+                --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }} \
+                --set todoapp.image.tag=${{ inputs.version }}
 
             - name: Helm upgrade
               run: |
-                helm upgrade --install --atomic --wait --debug --timeout 5m ${{ inputs.helm-release-name }} ${{ github.workspace }}/*.tgz \
+                helm upgrade --install --atomic --wait --debug --timeout 10m ${{ inputs.helm-release-name }} ${{ github.workspace }}/*.tgz \
                 -f ${{ inputs.helm_values_path }} \
                 --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
                 --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
