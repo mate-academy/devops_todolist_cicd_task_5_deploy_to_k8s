@@ -69,6 +69,8 @@ jobs:
 
       - name: Deploy Helm
         run: |
+          helm install --dry-run --debug \
+            ${{ inputs.helm-release-name }} ./todoapp-*.tgz \
           helm upgrade --install --atomic --wait --timeout 3600s --debug \
             ${{ inputs.helm-release-name }} ./todoapp-*.tgz \
             -f ${{ inputs.helm-values-path }} \

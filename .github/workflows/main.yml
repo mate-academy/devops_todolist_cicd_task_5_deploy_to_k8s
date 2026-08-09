@@ -68,6 +68,10 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.ref_name == 'main' }}
     needs: python-ci
+
+    outputs:
+      image-version: ${{ steps.image-version.outputs.version }}
+
     steps:
 
     - uses: actions/download-artifact@v4
@@ -82,12 +86,16 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+    - name: Set image version
+      id: image-version
+      run: echo "version=${GITHUB_SHA}" >> "$GITHUB_OUTPUT"    
+
     - name: Build and push
       uses: docker/build-push-action@v5
       with:
         push: true
         context: ./src
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
+        tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ steps.image-version.outputs.version }}
 
   helm-ci:
     runs-on: ubuntu-latest
@@ -126,8 +134,8 @@ jobs:
     secrets: inherit
     with:
       environment: development
-      version: ${{ github.sha }}
-      helm-values-path: ./todoapp/values.yml
+      version: ${{ needs.docker-ci.outputs.image-version }}
+      helm-values-path: ./todoapp/values.yaml
 
   deploy-helm-staging:
     name: Deploy Helm
@@ -136,6 +144,6 @@ jobs:
     secrets: inherit
     with:
       environment: staging
-      version: ${{ github.sha }}
-      helm-values-path: ./todoapp/values/staging.yml
+      version: ${{ needs.docker-ci.outputs.image-version }}
+      helm-values-path: ./todoapp/values/stg.yaml
       helm-release-name: todoapp-staging
