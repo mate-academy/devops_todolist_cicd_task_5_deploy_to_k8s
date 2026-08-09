@@ -17,6 +17,10 @@ spec:
       labels:
         app: {{ .Chart.Name }}
     spec:
+      initContainers:
+      - name: wait-for-mysql
+        image: mysql:8.0
+        command: ["sh", "-c", "until mysqladmin ping -h mysql-0.mysql.mysql.svc.cluster.local --silent; do echo waiting for mysql; sleep 2; done;"]
       containers:
       - name: {{ .Chart.Name }}
         image: {{ .Values.todoapp.image.repository }}:{{ .Values.todoapp.image.tag }}
