@@ -1,7 +1,7 @@
 todoapp:
   namespace: todoapp
   image:
-    repository: ikulyk404/todoapp
+    repository: eug696/eug696-todoapp
 
   resources:
     requests:
