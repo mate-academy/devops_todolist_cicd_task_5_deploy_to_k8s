@@ -25,11 +25,6 @@ todoapp:
     persistentVolumeClaim:
       requestStorage: "1Gi"
 
-  mysql:
-  secrets:
-    MYSQL_ROOT_PASSWORD: placeholder
-    MYSQL_USER: placeholder
-    MYSQL_PASSWORD: placeholder
 
   secrets:
     SECRET_KEY: placeholder
@@ -37,3 +32,9 @@ todoapp:
     DB_USER: placeholder
     DB_PASSWORD: placeholder
     DB_HOST: placeholder
+
+mysql:
+  secrets:
+    MYSQL_ROOT_PASSWORD: placeholder
+    MYSQL_USER: placeholder
+    MYSQL_PASSWORD: placeholder

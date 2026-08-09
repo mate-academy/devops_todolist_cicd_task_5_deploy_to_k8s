@@ -128,7 +128,7 @@ jobs:
       environment: development
       version: ${{ github.sha }}
 
-  helm-deloy-staging:
+  helm-deploy-staging:
     name: Deploy to staging
     uses: ./.github/workflows/reusable-workflow.yml
     needs: helm-deploy-dev
@@ -138,4 +138,4 @@ jobs:
       helm_values_path: ./helm-charts/todoapp/values/stg.yaml
       helm-release-name: todoapp-staging
       version: ${{ github.sha }}
-      
+
