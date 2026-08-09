@@ -135,6 +135,6 @@ jobs:
     secrets: inherit
     with:
       environment: staging
-      helm_values_path: ./helm-charts/todoapp/values/stg.yml
+      helm_values_path: ./helm-charts/todoapp/values/stg.yaml
       helm-release-name: todoapp-staging
       version: ${{ github.sha }}
