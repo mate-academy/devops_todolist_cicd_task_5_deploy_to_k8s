@@ -1,7 +1,7 @@
 todoapp:
   namespace: todoapp
   image:
-    repository: ikulyk404/todoapp
+    repository: eug696/eug696-todoapp
 
   resources:
     requests:
@@ -15,12 +15,26 @@ todoapp:
     minReplicas: 2
     maxReplicas: 5
     cpu:
-      avarageUtilization: 70
+      averageUtilization: 70
     memory:
-      avarageUtilization: 70
+      averageUtilization: 70
 
   volumes:
     persistentVolume:
       capacity: "1Gi"
     persistentVolumeClaim:
       requestStorage: "1Gi"
+
+
+  secrets:
+    SECRET_KEY: placeholder
+    DB_NAME: placeholder
+    DB_USER: placeholder
+    DB_PASSWORD: placeholder
+    DB_HOST: placeholder
+
+mysql:
+  secrets:
+    MYSQL_ROOT_PASSWORD: placeholder
+    MYSQL_USER: placeholder
+    MYSQL_PASSWORD: placeholder
