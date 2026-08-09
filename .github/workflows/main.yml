@@ -127,6 +127,7 @@ jobs:
     with:
       environment: development
       version: ${{ github.sha }}
+      helm-values-path: ./todoapp/values.yml
 
   deploy-helm-staging:
     name: Deploy Helm
