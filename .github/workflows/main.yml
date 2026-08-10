@@ -118,3 +118,20 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+
+  deploy-dev:
+    needs: [docker-ci, helm-ci]
+    uses: ./.github/workflows/helm-deploy.yml
+    with:
+      environment_name: development
+      version: ${{ github.sha }}
+    secrets: inherit
+
+  deploy-staging:
+    needs: deploy-dev
+    uses: ./.github/workflows/helm-deploy.yml
+    with:
+      environment_name: staging
+      version: ${{ github.sha }}
+    secrets: inherit
