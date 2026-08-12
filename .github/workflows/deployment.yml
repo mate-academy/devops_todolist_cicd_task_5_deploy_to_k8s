@@ -6,7 +6,7 @@ on:
     inputs:
       environment:
         required: true
-        description: 'Environment to doploy to'
+        description: 'Environment to deploy to'
         type: string
       version:
         required: true
@@ -56,6 +56,12 @@ jobs:
       with:
         config: cluster.yml
 
+    - name: Verify kubeconfig
+      run: |
+        echo "KUBECONFIG=$KUBECONFIG"
+        kubectl cluster-info
+        kubectl get nodes
+
     - name: Helm deployment dry-run
       run: |
         helm upgrade --install --dry-run --debug ${{ inputs.helm-release-name }} ./todoapp-*.tgz \
@@ -68,8 +74,8 @@ jobs:
           --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} \
           --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
           --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }} \
-          --set todoapp.image.repository='${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.docker-image-name }}' \
-          --set todoapp.image.tag=${{ github.sha }}
+          --set todoapp.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.docker-image-name }} \
+          --set todoapp.image.tag=${{ inputs.version }}
 
     - name: Deploy helm to development
       run: |
@@ -83,5 +89,5 @@ jobs:
           --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} \
           --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
           --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }} \
-          --set todoapp.image.repository='${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.docker-image-name }}' \
-          --set todoapp.image.tag=${{ github.sha }}
+          --set todoapp.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/${{ inputs.docker-image-name }} \
+          --set todoapp.image.tag=${{ inputs.version }}

@@ -122,6 +122,7 @@ jobs:
   deploy-helm-development:
     name: Deploy Helm on dev environment
     uses: ./.github/workflows/deployment.yml
+    if: github.ref_name == 'main'
     needs: [docker-ci, helm-ci]
     with:
       environment: development
@@ -132,6 +133,7 @@ jobs:
   deploy-helm-staging:
     name: Deploy Helm on staging environment
     uses: ./.github/workflows/deployment.yml
+    if: github.ref_name == 'main'
     needs: deploy-helm-development
     with:
       environment: staging
