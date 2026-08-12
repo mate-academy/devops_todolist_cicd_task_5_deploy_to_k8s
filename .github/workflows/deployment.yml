@@ -51,7 +51,7 @@ jobs:
     - name: Set up Kind cluster
       uses: helm/kind-action@v1
       with:
-        config: ./cluster.yml
+        config: cluster.yml
 
     - name: Helm deployment dry-run
       run: |
