@@ -38,6 +38,7 @@ jobs:
             --namespace ${{ inputs.environment }} \
             --create-namespace
 
+
       - name: Helm upgrade --install (atomic)
         run: |
           helm upgrade --install todoapp ./todoapp \
