@@ -1,0 +1,41 @@
+name: Deploy Helm Chart to Kind
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set Up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Create Kind Cluster
+        uses: helm/kind-action@v1
+        with:
+          config: ./cluster.yml
+
+      - name: Helm dry-run
+        run: |
+          helm install todoapp ./helm-charts/todoapp \
+            -f ./helm-charts/todoapp/values.yaml \
+            --namespace ${{ inputs.environment }} \
+            --create-namespace \
+            --dry-run --debug
+
+      - name: Helm upgrade --install (atomic)
+        run: |
+          helm upgrade --install todoapp ./helm-charts/todoapp \
+            -f ./helm-charts/todoapp/values.yaml \
+            --namespace ${{ inputs.environment }} \
+            --create-namespace \
+            --atomic \
+            --timeout 10m
