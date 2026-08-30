@@ -1,4 +1,4 @@
-name: heml-upgrade
+name: helm-upgrade
 run-name: ${{ github.actor }} - ${{ github.ref_name }}
 
 on:
@@ -46,13 +46,6 @@ jobs:
 
     - name: setup helm
       uses: azure/setup-helm@v4.2.0
-
-
-    # Temporary debugging
-    - name: Show downloaded files
-      run: |
-        pwd
-        find . -maxdepth 4 -type f | sort
 
     - name: Dry run
       run: |
