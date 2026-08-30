@@ -128,7 +128,7 @@ jobs:
       environment: development
       version: ${{ github.sha }}
 
-  deply-helm-staging:
+  deploy-helm-staging:
     name: Deploy helm
     uses: ./.github/workflows/workflow.yml
     needs: ["deploy-helm-dev"]
