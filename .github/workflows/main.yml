@@ -118,3 +118,23 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-dev:
+    name: Deploy heml
+    uses: ./.github/workflows/workflow.yml
+    needs: ["helm-ci", "docker-ci"]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+
+  deply-helm-staging:
+    name: Deploy helm
+    uses: ./.github/workflows/workflow.yml
+    needs: ["deploy-helm-dev"]
+    secrets: inherit
+    with:
+      environment: stagigng
+      version: ${{ github.sha }}
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging
