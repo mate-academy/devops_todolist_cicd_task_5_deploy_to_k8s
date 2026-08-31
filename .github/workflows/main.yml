@@ -66,6 +66,7 @@ jobs:
   docker-ci:
     name: Build and Push Image
     runs-on: ubuntu-latest
+    environment: development
     if: ${{ github.ref_name == 'main' }}
     needs: python-ci
     steps:
@@ -118,3 +119,26 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-development:
+    name: Deploy Development
+    needs:
+      - docker-ci
+      - helm-ci
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+      image_tag: ${{ github.sha }}
+    secrets: inherit
+
+  deploy-staging:
+    name: Deploy Staging
+    needs:
+      - docker-ci
+      - helm-ci
+      - deploy-development
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      image_tag: ${{ github.sha }}
+    secrets: inherit
