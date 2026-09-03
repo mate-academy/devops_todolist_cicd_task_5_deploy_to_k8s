@@ -35,6 +35,7 @@ jobs:
           helm install todoapp ./helm-charts/todoapp \
             -f ./helm-charts/todoapp/values.yaml \
             --dry-run \
+            --set todoapp.image.repository=${{ secrets.DOCKER_USERNAME }}/todoapp \
             --set todoapp.image.tag=${{ inputs.version }} \
             --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
             --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
@@ -50,6 +51,7 @@ jobs:
             -f ./helm-charts/todoapp/values.yaml \
             --timeout 10m \
             --debug \
+            --set todoapp.image.repository=${{ secrets.DOCKER_USERNAME }}/todoapp \
             --set todoapp.image.tag=${{ inputs.version }} \
             --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
             --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
