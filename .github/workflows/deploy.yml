@@ -1,0 +1,60 @@
+name: Deploy to Kubernetes
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Install kind
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: cluster.yml
+          cluster_name: kind
+
+      - name: Set Up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Dry Run Helm
+        run: |
+          helm install todoapp ./helm-charts/todoapp \
+            -f ./helm-charts/todoapp/values.yaml \
+            --dry-run \
+            --set todoapp.image.tag=${{ inputs.version }} \
+            --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
+            --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
+            --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} \
+            --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }} \
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
+            --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
+            --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+      - name: Deploy Helm
+        run: |
+          helm upgrade --install todoapp ./helm-charts/todoapp \
+            -f ./helm-charts/todoapp/values.yaml \
+            --atomic \
+            --set todoapp.image.tag=${{ inputs.version }} \
+            --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
+            --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
+            --set todoapp.secrets.DB_USER=${{ secrets.DB_USER }} \
+            --set todoapp.secrets.DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+            --set todoapp.secrets.DB_HOST=${{ secrets.DB_HOST }} \
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
+            --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
+            --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
