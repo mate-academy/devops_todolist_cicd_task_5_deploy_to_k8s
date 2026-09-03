@@ -79,7 +79,7 @@ jobs:
     - name: Login to Docker Hub
       uses: docker/login-action@v3
       with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
     - name: Build and push
@@ -87,7 +87,7 @@ jobs:
       with:
         push: true
         context: ./src
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
+        tags: ${{ secrets.DOCKER_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
 
   helm-ci:
     runs-on: ubuntu-latest
@@ -118,3 +118,18 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-development:
+    needs: [docker-ci, helm-ci]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+      version: ${{ github.sha }}
+    secrets: inherit
+  deploy-staging:
+    needs: [deploy-development]
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+    secrets: inherit
