@@ -58,3 +58,17 @@ jobs:
             --set mysql.secrets.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
             --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
             --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
+
+      - name: Debug on failure
+        if: failure()
+        run: |
+          echo "--- Pods (all namespaces) ---"
+          kubectl get pods -A
+          echo "--- todoapp pod describe ---"
+          kubectl describe pod -l app=todoapp -n todoapp
+          echo "--- todoapp pod logs ---"
+          kubectl logs -l app=todoapp -n todoapp --tail=200 --all-containers
+          echo "--- mysql pod describe ---"
+          kubectl describe pod -l app=mysql -n mysql
+          echo "--- mysql pod logs ---"
+          kubectl logs -l app=mysql -n mysql --tail=200 --all-containers
