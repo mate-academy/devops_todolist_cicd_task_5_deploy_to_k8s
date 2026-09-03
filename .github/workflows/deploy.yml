@@ -48,7 +48,9 @@ jobs:
         run: |
           helm upgrade --install todoapp ./helm-charts/todoapp \
             -f ./helm-charts/todoapp/values.yaml \
-            --timeout 3m \
+            --rollback-on-failure \
+            --wait \
+            --timeout 10m \
             --debug \
             --set todoapp.image.tag=${{ inputs.version }} \
             --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
