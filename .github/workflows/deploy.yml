@@ -48,7 +48,7 @@ jobs:
         run: |
           helm upgrade --install todoapp ./helm-charts/todoapp \
             -f ./helm-charts/todoapp/values.yaml \
-            --atomic \
+            --timeout 3m \
             --set todoapp.image.tag=${{ inputs.version }} \
             --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
             --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
@@ -60,15 +60,17 @@ jobs:
             --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
 
       - name: Debug on failure
-        if: failure()
+        if: always()
         run: |
           echo "--- Pods (all namespaces) ---"
           kubectl get pods -A
           echo "--- todoapp pod describe ---"
-          kubectl describe pod -l app=todoapp -n todoapp
+          kubectl describe pod -l app=todoapp -n todoapp || true
           echo "--- todoapp pod logs ---"
-          kubectl logs -l app=todoapp -n todoapp --tail=200 --all-containers
+          kubectl logs -l app=todoapp -n todoapp --tail=200 --all-containers || true
+          echo "--- todoapp previous pod logs (if crashed/restarted) ---"
+          kubectl logs -l app=todoapp -n todoapp --tail=200 --all-containers --previous || true
           echo "--- mysql pod describe ---"
-          kubectl describe pod -l app=mysql -n mysql
+          kubectl describe pod -l app=mysql -n mysql || true
           echo "--- mysql pod logs ---"
-          kubectl logs -l app=mysql -n mysql --tail=200 --all-containers
+          kubectl logs -l app=mysql -n mysql --tail=200 --all-containers || true
