@@ -49,6 +49,7 @@ jobs:
           helm upgrade --install todoapp ./helm-charts/todoapp \
             -f ./helm-charts/todoapp/values.yaml \
             --timeout 3m \
+            --debug \
             --set todoapp.image.tag=${{ inputs.version }} \
             --set todoapp.secrets.SECRET_KEY=${{ secrets.SECRET_KEY }} \
             --set todoapp.secrets.DB_NAME=${{ secrets.DB_NAME }} \
