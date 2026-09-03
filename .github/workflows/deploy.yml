@@ -48,8 +48,6 @@ jobs:
         run: |
           helm upgrade --install todoapp ./helm-charts/todoapp \
             -f ./helm-charts/todoapp/values.yaml \
-            --rollback-on-failure \
-            --wait \
             --timeout 10m \
             --debug \
             --set todoapp.image.tag=${{ inputs.version }} \
@@ -62,11 +60,33 @@ jobs:
             --set mysql.secrets.MYSQL_USER=${{ secrets.MYSQL_USER }} \
             --set mysql.secrets.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
 
-      - name: Debug on failure
+      - name: Node resource usage
+        if: always()
+        run: |
+          echo "--- Node capacity/allocatable ---"
+          kubectl describe nodes | grep -A 5 "Capacity:\|Allocatable:"
+          echo "--- Node resource usage (metrics) ---"
+          kubectl top nodes 2>&1 || echo "metrics-server not available"
+          echo "--- Pod resource usage (metrics) ---"
+          kubectl top pods -A 2>&1 || echo "metrics-server not available"
+
+      - name: Wait for rollout
+        if: always()
+        run: |
+          echo "--- Waiting for mysql StatefulSet ---"
+          kubectl rollout status statefulset/mysql -n mysql --timeout=120s || true
+          echo "--- Waiting for todoapp Deployment ---"
+          kubectl rollout status deployment/todoapp-todoapp -n todoapp --timeout=120s || true
+
+      - name: Debug pods
         if: always()
         run: |
           echo "--- Pods (all namespaces) ---"
-          kubectl get pods -A
+          kubectl get pods -A -o wide
+          echo "--- Events (todoapp namespace) ---"
+          kubectl get events -n todoapp --sort-by='.lastTimestamp' || true
+          echo "--- Events (mysql namespace) ---"
+          kubectl get events -n mysql --sort-by='.lastTimestamp' || true
           echo "--- todoapp pod describe ---"
           kubectl describe pod -l app=todoapp -n todoapp || true
           echo "--- todoapp pod logs ---"
