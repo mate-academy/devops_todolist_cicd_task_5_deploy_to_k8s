@@ -1,0 +1,51 @@
+name: Deploy to Kind
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download helm artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: helm-artifacts
+          path: .
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: cluster.yml
+          cluster_name: kind-${{ inputs.environment }}
+
+      - name: Helm dry-run
+        run: |
+          helm install todoapp ./todoapp/ \
+          -f ./todoapp/values.yaml \
+          --dry-run \
+          --namespace ${{ inputs.environment }} \
+          --create-namespace
+
+      - name: Helm upgrade
+        run: |
+          helm upgrade --install todoapp ./todoapp/ \
+          -f ./todoapp/values.yaml \
+          --namespace ${{ inputs.environment }} \
+          --create-namespace \
+          --atomic \
+          --timeout 3600s
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
