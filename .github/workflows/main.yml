@@ -10,7 +10,7 @@ on:
 
 env:
   PythonVersion: 3.8
-  DockerImageName: todoapp
+  DockerImageName: todoapp  # Вкажіть назву вашого репозиторію в DockerHub
 
 jobs:
   python-ci:
@@ -118,3 +118,25 @@ jobs:
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-dev:
+    name: Deploy to Development
+    needs: [docker-ci, helm-ci]
+    if: github.ref_name == 'main'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+      values_file: helm-charts/todoapp/values.yaml
+      image_tag: ${{ github.sha }}
+    secrets: inherit
+
+  deploy-staging:
+    name: Deploy to Staging
+    needs: [deploy-dev]
+    if: github.ref_name == 'main'
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      values_file: helm-charts/todoapp/values/stg.yaml
+      image_tag: ${{ github.sha }}
+    secrets: inherit

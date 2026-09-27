@@ -1,0 +1,69 @@
+name: Reusable Deployment Workflow
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target deployment environment (development, staging)'
+        required: true
+        type: string
+      values_file:
+        description: 'Path to helm values file'
+        required: false
+        type: string
+        default: 'helm-charts/todoapp/values.yaml'
+      image_tag:
+        description: 'Docker image tag'
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1.10.0
+        with:
+          config: cluster.yml
+          cluster_name: kind-cluster
+
+      - name: Build Helm Dependencies
+        run: |
+          helm dependency build helm-charts/todoapp/charts/mysql || true
+          helm dependency build helm-charts/todoapp
+
+      - name: Helm Install (Dry-Run)
+        run: |
+          helm install todoapp helm-charts/todoapp \
+            --namespace ${{ inputs.environment }} \
+            --create-namespace \
+            -f ${{ inputs.values_file }} \
+            --set todoapp.image.tag=${{ inputs.image_tag }} \
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --dry-run
+
+      - name: Helm Upgrade / Install (Atomic)
+        run: |
+          helm upgrade --install todoapp helm-charts/todoapp \
+            --namespace ${{ inputs.environment }} \
+            --create-namespace \
+            -f ${{ inputs.values_file }} \
+            --set todoapp.image.tag=${{ inputs.image_tag }} \
+            --set mysql.secrets.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+            --set mysql.secrets.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+            --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+            --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+            --atomic \
+            --timeout 5m0s
