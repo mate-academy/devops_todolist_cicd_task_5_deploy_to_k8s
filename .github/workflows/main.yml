@@ -51,14 +51,20 @@ jobs:
           flake8 . --exit-zero --max-complexity=6
 
       - name: Upload python artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: python-artifacts
           path: .
 
+      - name: Upload cluster artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: cluster-artifacts
+          path: ./cluster.yml
+
       - name: Upload helm artifacts
         if: github.ref_name == 'main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: helm-artifacts
           path: ${{ github.workspace }}/helm-charts
@@ -70,7 +76,7 @@ jobs:
     needs: python-ci
     steps:
 
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v7
       name: Download python artifacts
       with:
         name: python-artifacts
@@ -96,7 +102,7 @@ jobs:
     name: Helm CI
     steps:
 
-    - uses: actions/download-artifact@v4
+    - uses: actions/download-artifact@v7
       with:
         name: helm-artifacts
         path: .
@@ -114,7 +120,27 @@ jobs:
       run: helm package ./todoapp
 
     - name: Upload Helm Artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: helm-package
         path: ./*.tgz
+
+  deploy-helm-dev:
+    name: Deploy Helm Development
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: [helm-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+
+  deploy-helm-staging:
+    name: Deploy Helm Staging
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: deploy-helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
+      helm-values-path: ./todoapp/values/stg.yaml
+      helm-release-name: todoapp-staging

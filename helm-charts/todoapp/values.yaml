@@ -1,14 +1,14 @@
 mysql:
   secrets:
-    MYSQL_ROOT_PASSWORD: 12345
-    MYSQL_USER: app_user
-    MYSQL_PASSWORD: 1234
+    MYSQL_ROOT_PASSWORD: changeme
+    MYSQL_USER: changeme
+    MYSQL_PASSWORD: changeme
 
 todoapp:
   namespace: todoapp
   image:
-    repository: ikulyk404/todoapp
-    tag: "4.0.1"
+    repository: changeme
+    tag: changeme
 
   resources:
     requests:
@@ -19,11 +19,11 @@ todoapp:
       cpu: "150m"
 
   secrets:
-    SECRET_KEY: zdfsadfsadfsfs
-    DB_NAME: app_db
-    DB_USER: app_user
-    DB_PASSWORD: 1234
-    DB_HOST: mysql-0.mysql.mysql.svc.cluster.local
+    SECRET_KEY: changeme
+    DB_NAME: changeme
+    DB_USER: changeme
+    DB_PASSWORD: changeme
+    DB_HOST: changeme
 
   hpa:
     minReplicas: 2
