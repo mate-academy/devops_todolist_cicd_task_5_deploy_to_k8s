@@ -66,8 +66,12 @@ jobs:
   docker-ci:
     name: Build and Push Image
     runs-on: ubuntu-latest
-    if: ${{ github.ref_name == 'main' }}
+    # ponytail: fork PRs get no secrets, so skip there; deploys skip via needs
+    if: ${{ github.event.pull_request.head.repo.full_name == github.repository || github.ref_name == 'main' }}
     needs: python-ci
+    outputs:
+      image_repository: ${{ steps.image.outputs.repository }}
+      image_tag: ${{ steps.image.outputs.tag }}
     steps:
 
     - uses: actions/download-artifact@v4
@@ -88,6 +92,34 @@ jobs:
         push: true
         context: ./src
         tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.DockerImageName }}:${{ github.sha }}
+
+    - name: Export image reference
+      id: image
+      env:
+        DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      run: |
+        echo "repository=${DOCKERHUB_USERNAME}/${{ env.DockerImageName }}" >> "$GITHUB_OUTPUT"
+        echo "tag=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+  deploy-development:
+    name: Deploy to development
+    needs: docker-ci
+    uses: ./.github/workflows/deploy-kind.yml
+    with:
+      environment: development
+      image_repository: ${{ needs.docker-ci.outputs.image_repository }}
+      image_tag: ${{ needs.docker-ci.outputs.image_tag }}
+    secrets: inherit
+
+  deploy-staging:
+    name: Deploy to staging
+    needs: [docker-ci, deploy-development]
+    uses: ./.github/workflows/deploy-kind.yml
+    with:
+      environment: staging
+      image_repository: ${{ needs.docker-ci.outputs.image_repository }}
+      image_tag: ${{ needs.docker-ci.outputs.image_tag }}
+    secrets: inherit
 
   helm-ci:
     runs-on: ubuntu-latest

@@ -36,7 +36,7 @@ This CI/CD enhancement involves several key tasks:
 1. Update your forked repository with your DockerHub username and password.
     1. Add corresponding secrets to the repository.
 2. Update `DockerImageName` with your DockerHub image repository name.
-3. Add a resubable workflow to deploy to `kind` kubernetes cluster.
+3. Add a reusable workflow to deploy to `kind` kubernetes cluster.
     1. Reusable workflow should allow to deploy to different `environments`.
     1. Add steps to spin up a `kind` cluster from a `cluster.yml` file.
     1. Job should contain a step with `helm install --dry-run` command.

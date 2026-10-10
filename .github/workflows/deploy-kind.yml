@@ -1,0 +1,68 @@
+name: deploy-kind
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment to deploy to; its environment secrets are used
+        required: true
+        type: string
+      image_repository:
+        description: DockerHub image repository, e.g. <user>/todoapp
+        required: true
+        type: string
+      image_tag:
+        required: true
+        type: string
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      IMAGE_REPOSITORY: ${{ inputs.image_repository }}
+      IMAGE_TAG: ${{ inputs.image_tag }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4.2.0
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          config: cluster.yml
+
+      - name: Build secrets values file
+        run: |
+          for v in SECRET_KEY DB_PASSWORD MYSQL_ROOT_PASSWORD; do
+            [ -n "${!v}" ] || { echo "::error::Environment secret $v is not set"; exit 1; }
+          done
+          jq -n \
+            --arg secret_key "$SECRET_KEY" \
+            --arg db_password "$DB_PASSWORD" \
+            --arg root_password "$MYSQL_ROOT_PASSWORD" \
+            '{todoapp: {secrets: {SECRET_KEY: $secret_key, DB_PASSWORD: $db_password}},
+              mysql: {secrets: {MYSQL_PASSWORD: $db_password, MYSQL_ROOT_PASSWORD: $root_password}}}' \
+            > "$RUNNER_TEMP/secrets.json"
+
+      - name: Helm install dry-run
+        run: |
+          helm install todoapp ./helm-charts/todoapp \
+            -f "$RUNNER_TEMP/secrets.json" \
+            --set-string "todoapp.image.repository=$IMAGE_REPOSITORY" \
+            --set-string "todoapp.image.tag=$IMAGE_TAG" \
+            --dry-run
+
+      - name: Helm upgrade --install
+        run: |
+          helm upgrade --install todoapp ./helm-charts/todoapp \
+            -f "$RUNNER_TEMP/secrets.json" \
+            --set-string "todoapp.image.repository=$IMAGE_REPOSITORY" \
+            --set-string "todoapp.image.tag=$IMAGE_TAG" \
+            --atomic --timeout 5m
