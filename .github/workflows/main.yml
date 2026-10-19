@@ -10,7 +10,7 @@ on:
 
 env:
   PythonVersion: 3.8
-  DockerImageName: todoapp
+  DockerImageName: kapany322/todoapp
 
 jobs:
   python-ci:
@@ -113,8 +113,33 @@ jobs:
     - name: Package Helm
       run: helm package ./todoapp
 
-    - name: Upload Helm Artifact
+    - name: Upload Helm Package
       uses: actions/upload-artifact@v4
       with:
         name: helm-package
         path: ./*.tgz
+
+    - name: Upload Kind cluster
+      uses: actions/upload-artifact@v4
+      with:
+        name: kind-cluster
+        path: .
+
+
+  deploy-helm-dev:
+    name: Deploy Helm
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: [helm-ci, docker-ci]
+    secrets: inherit
+    with:
+      environment: development
+      version: ${{ github.sha }}
+
+  deploy-helm-staging:
+    name: Deploy Helm
+    uses: ./.github/workflows/deployment-workflow.yml
+    needs: deploy-helm-dev
+    secrets: inherit
+    with:
+      environment: staging
+      version: ${{ github.sha }}
