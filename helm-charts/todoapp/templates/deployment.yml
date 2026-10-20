@@ -58,17 +58,3 @@ spec:
             secretKeyRef:
               name: {{ .Chart.Name }}-secret
               key: DB_HOST
-        ports:
-        - containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: api/health
-            port: 8080
-          initialDelaySeconds: 60
-          periodSeconds: 5
-        readinessProbe:
-          httpGet:
-            path: api/ready
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 5
