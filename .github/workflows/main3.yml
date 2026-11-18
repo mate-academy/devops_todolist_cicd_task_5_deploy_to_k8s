@@ -167,7 +167,7 @@ jobs:
           --timeout 3600s \
           --debug \
           todoapp ./todoapp-*.tgz \
-          -f ./helm-charts\todoapp\values.yaml\
+          -f ./helm-charts/todoapp/values.yaml\
           --set mysql.config.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
           --set mysql.config.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
           --set mysql.config.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
