@@ -150,11 +150,12 @@ jobs:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
     - name: Set AKS context
-      uses: azure/aks-set-context@v3
-      with:
-        resource-group: ${{ vars.AZURE_RESOUURCE_GROUP }}
-        cluster-name: ${{ vars.AZURE_CLUSTER_NAME }}
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+      shell: bash
+      run: |
+           az aks get-credentials \
+            --resource-group "devops_todolist_cicd_task_5_deploy_to_k8s" \
+            --name "mateapp-development-aks" \
+            --overwrite-existing
     - name: Deploy helm chart to Development
       run: |
         helm upgrade --install --atomic --wait --timeout 3600s --debug todoapp ./todoapp-*.tgz -f \
