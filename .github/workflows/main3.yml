@@ -158,6 +158,7 @@ jobs:
           --name "mateapp-development-aks" \
           --overwrite-existing
 
+
     - name: Deploy helm chart to Development
       shell: bash
       run: |
@@ -167,7 +168,6 @@ jobs:
           --timeout 3600s \
           --debug \
           todoapp ./todoapp-*.tgz \
-          -f ./helm-charts/todoapp/values.yaml \
           --set mysql.config.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
           --set mysql.config.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
           --set mysql.config.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
@@ -177,6 +177,7 @@ jobs:
           --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
           --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
           --set-string todoapp.image.repository="${{ secrets.DOCKERHUB_USERNAME }}/todoapp"
+
 
 
 
