@@ -314,22 +314,33 @@ jobs:
             --resource-group "devops_todolist_cicd_task_5_deploy_to_k8s" \
             --name "mateapp-development-aks" \
             --overwrite-existing
+
+    - name: Set AKS context
+      shell: bash
+      run: |
+        az aks get-credentials \
+          --resource-group "devops_todolist_cicd_task_5_deploy_to_k8s" \
+          --name "mateapp-development-aks" \
+          --overwrite-existing
+
     - name: Deploy helm chart to Development
+      shell: bash
       run: |
         helm upgrade --install \
-        --rollback-on-failure \
-        --wait \
-        --timeout 3600s \
-        --debug \
-        todoapp ./todoapp-*.tgz \
-        -f ./values.yaml
-        --set mysql.config.MYSQL_ROOT_PASSWORD=${{ secrets.MYSQL_ROOT_PASSWORD }} \
-        --set mysql.config.MYSQL_USER=${{ secrets.MYSQL_USER }} \
-        --set mysql.config.MYSQL_PASSWORD=${{ secrets.MYSQL_PASSWORD }}
-        --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
-        --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
-        --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
-        --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
-        --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}"
-        --set-string todoapp.image.repository=${{ secrets.DOCKERHUB_USERNAME }}/todoapp \
+          --rollback-on-failure \
+          --wait \
+          --timeout 3600s \
+          --debug \
+          todoapp ./todoapp-*.tgz \
+          -f ./values.yaml \
+          --set mysql.config.MYSQL_ROOT_PASSWORD="${{ secrets.MYSQL_ROOT_PASSWORD }}" \
+          --set mysql.config.MYSQL_USER="${{ secrets.MYSQL_USER }}" \
+          --set mysql.config.MYSQL_PASSWORD="${{ secrets.MYSQL_PASSWORD }}" \
+          --set todoapp.secrets.SECRET_KEY="${{ secrets.SECRET_KEY }}" \
+          --set todoapp.secrets.DB_NAME="${{ secrets.DB_NAME }}" \
+          --set todoapp.secrets.DB_USER="${{ secrets.DB_USER }}" \
+          --set todoapp.secrets.DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+          --set todoapp.secrets.DB_HOST="${{ secrets.DB_HOST }}" \
+          --set-string todoapp.image.repository="${{ secrets.DOCKERHUB_USERNAME }}/todoapp"
+
 
